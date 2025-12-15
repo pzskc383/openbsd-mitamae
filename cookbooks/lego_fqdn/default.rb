@@ -8,7 +8,7 @@ end
 template "/var/lego/lego_fqdn.sh" do
   source "templates/lego_fqdn.sh.erb"
   mode "0755"
-  variables(admin_email: node[:lego_admin_email])
+  variables(admin_email: node.lego_admin_email)
 end
 
 execute "acquire initial fqdn certificates" do

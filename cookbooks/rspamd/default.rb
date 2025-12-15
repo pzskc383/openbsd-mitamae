@@ -1,4 +1,4 @@
-if node[:mail_role] != "primary"
+if node.mail_role != "primary"
   ::MItamae.logger.warn "Not a primary mail server, skipping rspamd setup"
   return
 end
@@ -21,7 +21,7 @@ template "/etc/rspamd/local.d/dkim_signing.conf" do
   owner "root"
   group "wheel"
   variables(
-    domains: node[:mail_primary_domains] || []
+    domains: node.mail_primary_domains || []
   )
   notifies :restart, "service[rspamd]"
 end
@@ -32,7 +32,7 @@ template "/etc/rspamd/local.d/arc.conf" do
   owner "root"
   group "wheel"
   variables(
-    domains: node[:mail_primary_domains] || []
+    domains: node.mail_primary_domains || []
   )
   notifies :restart, "service[rspamd]"
 end

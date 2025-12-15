@@ -1,6 +1,6 @@
-node[:relayd_domains] ||= []
-node[:relayd_domains] << "pzskc383.net"
-node[:relayd_domains] << "pzskc383.dp.ua"
+node.relayd_domains ||= []
+node.relayd_domains << "pzskc383.net"
+node.relayd_domains << "pzskc383.dp.ua"
 
 notify!("create@template[/etc/relayd.conf]")
 
@@ -9,8 +9,10 @@ remote_file "/etc/httpd.conf.d/main_pzskc383.conf" do
   notifies :reload, 'service[httpd]'
 end
 
-node[:httpd_config_files] << "main_pzskc383.conf"
+node.httpd_config_files << "main_pzskc383.conf"
 notify!("create@template[/etc/httpd.conf]")
+
+openbsd_package "cgit"
 
 %w[cgitrc cgit-head.inc.html].each do |fn|
   remote_file "/var/www/conf/#{fn}" do
@@ -33,3 +35,15 @@ directory "/var/www/htdocs/pzskc383"
 end
 
 # include_recipe "compile_chroma.rb"
+
+include_recipe "../openbsd_server/defines.rb"
+snippet = %w[main cgit redir git-dumb].map do |host|
+  <<~EXTRA
+    /var/www/logs/access.#{host}.log                644  4     *    $W0   Z "rcctl reload httpd"
+    /var/www/logs/error.#{host}.log                 644  7     250  *     Z "rcctl reload httpd"
+  EXTRA
+end.join
+newsyslog_snippet "http_site_main" do
+  content snippet
+end
+notify!("create@template[/etc/newsyslog.conf]")

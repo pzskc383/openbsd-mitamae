@@ -65,12 +65,12 @@ template '/etc/knot/knot.conf' do
   mode '0644'
   owner 'root'
   group 'wheel'
-  other_hosts = node[:hosts].reject { |k, _v| k == node[:hostname] }
+  other_hosts = node.hosts.reject { |k, _v| k == node.hostname }
   variables(
-    knot_zones: node[:knot_zones],
-    knot_tsig_secret: node[:knot_tsig_secret],
+    knot_zones: node.knot_zones,
+    knot_tsig_secret: node.knot_tsig_secret,
     hosts: other_hosts,
-    current_host: node[:hostname]
+    current_host: node.hostname
   )
   notifies :restart, 'service[knot]'
 end
@@ -80,15 +80,15 @@ service 'knot' do
 end
 
 KNOT_KEYTYPES = %w[KSK ZSK].freeze
-node[:knot_zones].each do |z|
+node.knot_zones.each do |z|
   now = Time.now
   midnight = Time.new(now.year, now.month, now.day, 0, 0, 0)
   part = ((now.to_i - midnight.to_i) * 99 / 86_400)
   serial = Kernel.format("%s%02d", "#{now.year}#{now.month}#{now.day}", part)
-  next unless z[:primary] == node[:hostname]
+  next unless z[:primary] == node.hostname
 
   zone = z[:name]
-  dnskey = node[:knot_dnssec].find { |d| d[:zone] == zone }
+  dnskey = node.knot_dnssec.find { |d| d[:zone] == zone }
 
   template "#{zone}.zone" do
     source "templates/zones/#{zone}.zone.erb"
@@ -99,7 +99,7 @@ node[:knot_zones].each do |z|
     group 'wheel'
 
     variables(
-      hosts: node[:hosts],
+      hosts: node.hosts,
       serial: serial
     )
 

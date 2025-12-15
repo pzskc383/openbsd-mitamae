@@ -68,9 +68,8 @@ define :lines_in_file, lines: [] do
   end
 end
 
-NOTIFY_RX = %r{(?<action>[^@]+)@(?<resource>[^\[]+)\[(?<name>[^\]]+)\]}
-
 # format: notify! "run@execute[my command]"
+NOTIFY_RX = %r{(?<action>[^@]+)@(?<resource>[^\[]+)\[(?<name>[^\]]+)\]}
 define :notify! do
   parsed = NOTIFY_RX.match(params[:name])
   raise "invalid notify! spec: #{params[:name]}" if parsed.nil?
@@ -78,7 +77,7 @@ define :notify! do
   local_block_name = ["notify", parsed[:action], parsed[:resource], parsed[:name]].join(':')
 
   local_ruby_block local_block_name do
-    block {} # rubocop:disable Lint/EmptyBlock
+    block { true }
     notifies parsed[:action].to_sym, "#{parsed[:resource]}[#{parsed[:name]}]"
   end
 end

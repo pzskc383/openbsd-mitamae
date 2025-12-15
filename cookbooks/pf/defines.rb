@@ -9,7 +9,7 @@ execute "reload_pf" do
   only_if "pfctl -nf /etc/pf.conf"
 end
 
-template "pf_dynamic_services" do
+template "/etc/pf.conf" do
   action :nothing
   path "/etc/pf.conf"
   mode "0600"
@@ -17,7 +17,7 @@ template "pf_dynamic_services" do
 end
 
 define :pf_snippet, content: nil do
-  node[:pf_snippets] << (params[:content] || params[:name])
+  node.pf_snippets << (params[:content] || params[:name])
 
-  notify!("create@template[pf_dynamic_services]")
+  notify!("create@template[/etc/pf.conf]")
 end

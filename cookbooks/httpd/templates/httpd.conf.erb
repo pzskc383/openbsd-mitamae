@@ -1,17 +1,14 @@
 include "/etc/httpd.conf.d/macro.conf"
-loopback = "127.0.0.1"
+loopback = "lo0"
 
 errdocs "errdocs/"
 
-prefork 5
-
+include "/etc/httpd.conf.d/default.conf"
 include "/etc/httpd.conf.d/fqdn.conf"
 
-<%- @config_files.each do |filename| %>
+<%- @node[:httpd_config_files].each do |filename| -%>
 include "/etc/httpd.conf.d/<%= filename %>"
 <%- end -%>
-
-include "/etc/httpd.conf.d/relayd_check.conf"
 
 types {
     include "/usr/share/misc/mime.types"

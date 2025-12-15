@@ -13,3 +13,19 @@ define :sysctl, settings: [] do
     notifies :run, "execute[reload sysctl]"
   end
 end
+
+node.reverse_merge!({
+  newsyslog_extra_lines: []
+})
+
+template "/etc/newsyslog.conf" do
+  action :nothing
+  source "templates/newsyslog.conf.erb"
+  mode "0640"
+end
+
+define :newsyslog_snippet, content: nil do
+  node.newsyslog_extra_lines << (params[:content] || params[:name])
+
+  notify!("create@template[/etc/newsyslog.conf]")
+end

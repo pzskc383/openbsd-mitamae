@@ -1,18 +1,23 @@
 # OpenSMTPD mail server cookbook
-node[:mail_domains] ||= {}
-node[:mail_admin_aliases] ||= %w[MAILER-DAEMON postmaster hostmaster
-                                 operator www security manager dumper
-                                 noc webmaster]
+
+node.reverse_merge!(
+  mail_domains: {},
+  mail_admin_aliases: %w[MAILER-DAEMON postmaster hostmaster
+                         operator www security manager dumper
+                         noc webmaster],
+  mail_tls_cert: "/etc/ssl/fqdn.crt",
+  mail_tls_key: "/etc/ssl/private/fqdn.key"
+)
 
 primary_domains = []
 relay_domains = []
 mail_accounts = []
 
-node[:mail_domains].each do |domain, config|
+node.mail_domains.each do |domain, config|
   servers = config[:servers] || []
   next if servers.empty?
 
-  if servers[0] == node[:hostname]
+  if servers[0] == node.hostname
     config[:redirects] ||= []
     config[:accounts] ||= []
 
@@ -24,22 +29,22 @@ node[:mail_domains].each do |domain, config|
         password_hash: acc[:password_hash]
       }
     end
-  elsif servers.include?(node[:hostname])
+  elsif servers.include?(node.hostname)
     relay_domains << domain
   end
 end
 
 mail_role = primary_domains.empty? ? "secondary" : "primary"
 
-node[:mail_role] = mail_role
-node[:mail_primary_domains] = primary_domains
-node[:mail_relay_domains] = relay_domains
+node.mail_role = mail_role
+node.mail_primary_domains = primary_domains
+node.mail_relay_domains = relay_domains
 
 template "/etc/mail/mailname" do
   source "templates/mailname.erb"
   mode "0664"
   variables(
-    fqdn: node[:fqdn]
+    fqdn: node.fqdn
   )
   notifies :restart, "service[smtpd]"
 end
@@ -61,16 +66,16 @@ if mail_role == "primary"
   end
 
   # openbsd_package "opensmtpd-table-ldap"
-  # smtpd_bind_pw = node[:ldapd_service_accounts].first { |a| a[:name] == "smtpd" }[:password]
+  # smtpd_bind_pw =node.ldapd_service_accounts.first { |a| a[:name] == "smtpd" }[:password]
   # template "/etc/mail/ldap_table.conf" do
   #   variables(
-  #     base_dn: node[:ldapd_base_dn],
+  #     base_dn:node.ldapd_base_dn,
   #     smtpd_bind_pw: smtpd_bind_pw
   #   )
   # end
   # mail_accounts.each do |acc|
   #   ldap_object "mail=#{acc[:email]},ou=accounts,dc=b0x,dc=pw"
-  #   server node[:ldapd_server]
+  #   servernode.ldapd_server
   #   attrs({
   #     objectClass: 'loginAccount',
   #     mail: acc[:email],
@@ -95,7 +100,7 @@ if mail_role == "primary"
     group "_smtpd"
     variables(
       primary_domains: primary_domains,
-      domains: node[:mail_domains],
+      domains: node.mail_domains,
       accounts: mail_accounts
     )
     notifies :run, "execute[makemap vusers]"
@@ -108,8 +113,8 @@ end
 #   source "templates/aliases.erb"
 #   mode "0644"
 #   variables(
-#     admin_aliases: node[:mail_admin_aliases],
-#     admin_address: node[:global_admin_address] || mail_domains.values.first[:main_account]
+#     admin_aliases:node.mail_admin_aliases,
+#     admin_address:node.global_admin_address || mail_domains.values.first[:main_account]
 #   )
 #   notifies :run, "execute[newaliases]"
 # end
@@ -139,13 +144,13 @@ template "/etc/mail/smtpd.conf" do
   source "templates/smtpd.conf.erb"
   mode "0640"
   variables(
-    fqdn: node[:fqdn],
+    fqdn: node.fqdn,
     mail_role: mail_role,
     primary_domains: primary_domains,
     relay_domains: relay_domains,
-    tls_cert: node[:mail_tls_cert] || "/etc/ssl/fqdn.crt",
-    tls_key: node[:mail_tls_key] || "/etc/ssl/private/fqdn.key",
-    mail_domains: node[:mail_domains]
+    tls_cert: node.mail_tls_cert,
+    tls_key: node.mail_tls_key,
+    mail_domains: node.mail_domains
   )
 
   notifies :run, "execute[restart_smtpd]"

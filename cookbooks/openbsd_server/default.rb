@@ -1,5 +1,3 @@
-node[:newsyslog_extra_lines] = []
-
 include_recipe "defines.rb"
 
 openbsd_package "vim" do
@@ -18,21 +16,17 @@ end
   end
 end
 
-template "/etc/newsyslog.conf" do
-  source "templates/newsyslog.conf.erb"
-  mode "0640"
-end
-
-file "/etc/resolv.conf" do
+remote_file "/etc/resolv.conf" do
+  source "files/resolv.conf"
   mode "0644"
 end
 
-if node[:network_setup][:v6][:use_slaac]
+if node.network_setup.v6.use_slaac
   service "slaacd" do
     action %i[enable start]
   end
 end
-if node[:network_setup][:v4][:use_dhcp]
+if node.network_setup.v4.use_dhcp
   service "dhcpleased" do
     action %i[enable start]
   end
@@ -45,6 +39,7 @@ end
 
 %w[mygate hostname.vio0].each do |netfile|
   template "/etc/#{netfile}" do
+    ## NOT FUN, DON'T
     # notifies :run, "execute[netstart]"
   end
 end
@@ -57,12 +52,12 @@ end
 
 file "/etc/motd" do
   action :edit
-  motd = node[:motd] || ""
+  motd = node.motd || ""
   block do |data|
     header = data.lines.first
 
     parts = [header, '']
-    unless node[:motd].nil?
+    unless node.motd.nil?
       parts << motd
       parts << ''
     end

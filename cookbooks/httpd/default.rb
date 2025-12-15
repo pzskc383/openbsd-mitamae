@@ -4,6 +4,12 @@ node.reverse_merge!({
   httpd_config_files: []
 })
 
+fqdn_hosts = {
+  "host" => node[:fqdn],
+  "v4" => node[:network_setup].v4.address,
+  "v6" => node[:network_setup].v6.address
+}
+
 directory "/etc/httpd.conf.d"
 
 remote_file '/etc/httpd.conf.d/macro.conf' do
@@ -11,29 +17,40 @@ remote_file '/etc/httpd.conf.d/macro.conf' do
   notifies :restart, 'service[httpd]'
   notifies :restart, 'service[relayd]'
 end
+remote_file '/etc/httpd.conf.d/default.conf' do
+  source 'files/httpd.default.conf'
+  notifies :restart, 'service[httpd]'
+end
+template '/etc/httpd.conf.d/fqdn.conf' do
+  source 'templates/httpd/fqdn.conf.erb'
+  variables(fqdn_hosts: fqdn_hosts)
+  notifies :restart, 'service[httpd]'
+end
+
 template '/etc/httpd.conf' do
   source 'templates/httpd.conf.erb'
-  variables(config_files: node[:httpd_config_files])
   notifies :restart, 'service[httpd]'
 end
 
 node[:relayd_has_fqdn_cert] = File.exist? '/etc/ssl/fqdn.crt'
+node[:relayd_has_tls] = node[:relayd_has_fqdn_cert] || !node[:relayd_domains].nil?
 
 directory '/etc/relayd.conf.d'
-template '/etc/relayd.conf.d/http_relay.conf' do
-  source 'templates/relayd.conf.d/http_relay.conf.erb'
-end
-
-template '/etc/relayd.conf' do
-  source 'templates/relayd.conf.erb'
-  variables(has_tls: node[:relayd_has_fqdn_cert] || !node[:relayd_domains].nil?)
+remote_file '/etc/relayd.conf.d/http_headers.conf' do
+  source 'files/relayd.http_headers.conf'
   notifies :restart, 'service[relayd]'
 end
-
+template '/etc/relayd.conf.d/http_relay.conf' do
+  source 'templates/relayd/http_relay.conf.erb'
+  notifies :restart, 'service[relayd]'
+end
 template '/etc/relayd.conf.d/tls_relay.conf' do
-  source 'templates/relayd.conf.d/tls_relay.conf.erb'
-  variables(domains: node[:relayd_domains] || [])
-  notifies :create, 'template[/etc/relayd.conf]'
+  source 'templates/relayd/tls_relay.conf.erb'
+  notifies :restart, 'service[relayd]'
+end
+template '/etc/relayd.conf' do
+  source 'templates/relayd.conf.erb'
+  notifies :restart, 'service[relayd]'
 end
 
 directory '/var/www/errdocs' do
@@ -41,7 +58,6 @@ directory '/var/www/errdocs' do
   owner 'root'
   group 'daemon'
 end
-
 remote_file "/var/www/errdocs/err.html" do
   source 'files/err.html'
   mode '0644'
@@ -50,12 +66,6 @@ remote_file "/var/www/errdocs/err.html" do
 end
 
 directory "/var/www/htdocs/fqdn"
-fqdn_hosts = {
-  "host" => node[:fqdn],
-  "v4" => node[:network_setup][:v4][:address],
-  "v6" => node[:network_setup][:v6][:address]
-}
-
 fqdn_hosts.each do |type, value|
   directory "/var/www/htdocs/fqdn/#{type}"
   template "/var/www/htdocs/fqdn/#{type}/index.html" do
@@ -65,17 +75,6 @@ fqdn_hosts.each do |type, value|
     owner "root"
     group "daemon"
   end
-end
-
-template '/etc/httpd.conf.d/fqdn.conf' do
-  source 'templates/httpd.conf.d/fqdn.conf.erb'
-  variables(fqdn_hosts: fqdn_hosts)
-  notifies :create, "template[/etc/httpd.conf]"
-end
-
-remote_file '/etc/httpd.conf.d/relayd_check.conf' do
-  source 'files/relayd_check.conf'
-  notifies :create, "template[/etc/httpd.conf]"
 end
 
 service 'httpd' do
@@ -95,7 +94,17 @@ pf_snippet 'httpd' do
     pass proto tcp to port { http https } set queue http
   PF
 end
-
 node[:pf_enable_relayd] = true
+notify!("create@template[/etc/pf.conf]")
 
-notify!("create@template[pf_dynamic_services]")
+include_recipe "../openbsd_server/defines.rb"
+snippet = %w[default fqdn].map do |host|
+  <<~EXTRA
+    /var/www/logs/access.#{host}.log                644  4     *    $W0   Z "rcctl reload httpd"
+    /var/www/logs/error.#{host}.log                 644  7     250  *     Z "rcctl reload httpd"
+  EXTRA
+end
+newsyslog_snippet "http_default" do
+  content snippet
+end
+notify!("create@template[/etc/newsyslog.conf]")

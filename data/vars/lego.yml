@@ -1,10 +1,10 @@
 lego_admin_email: me@pzskc383.net
 lego_certs:
-  - name: wild_net
-    domains:
-      - pzskc383.net
-      - '*.pzskc383.net'
-    zone: pzskc383.net
+  # - name: wild_net
+  #   domains:
+  #     - pzskc383.net
+  #     - '*.pzskc383.net'
+  #   zone: pzskc383.net
 
   - name: wild_dpua
     domains:
@@ -16,3 +16,18 @@ lego_certs:
     domains:
       - b0x.pw
     zone: b0x.pw
+
+  - name: post_box
+    domains:
+      - post.b0x.pw
+      - my.post.b0x.pw
+    zone: b0x.pw
+
+  # - name: boot_box
+  #   domains:
+  #     - boot.my.b0x.pw
+  #     - netboot.my.b0x.pw
+  #     - boot.bsd.on.my.b0x.pw
+  #     - boot.alpine.on.my.b0x.pw
+  #     - boot.fedora.on.my.b0x.pw
+  #   zone: b0x.pw

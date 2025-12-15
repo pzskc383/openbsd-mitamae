@@ -59,10 +59,10 @@ module HochoOpenBSDPatches
 
       # Only include cookbooks directory, exclude everything else
       hostname = if host.hostname.include?(':')
-                   "[#{host.hostname}]"
-                 else
-                   host.hostname
-                 end
+        "[#{host.hostname}]"
+      else
+        host.hostname
+      end
       rsync_cmd = [
         'rsync', '-a', '--copy-links', '--copy-unsafe-links', '--delete',
         '--rsh', ssh_cmd,

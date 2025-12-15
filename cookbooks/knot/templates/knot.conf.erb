@@ -2,8 +2,8 @@ server:
     rundir: "/var/run/knot"
     user: _knot:_knot
     automatic-acl: on
-    listen: <%= node[:network_setup][:v4][:address] %>@53
-    listen: <%= node[:network_setup][:v6][:address] %>@53
+    listen: <%= node[:network_setup].v4.address %>@53
+    listen: <%= node[:network_setup].v6.address %>@53
     identity: ""
     version: ""
     nsid: ""
@@ -32,7 +32,7 @@ remote:
 
 acl:
   - id: lego_nsupdate
-    address: [<%= node[:network_setup][:v4][:address] %>, <%= node[:network_setup][:v6][:address] %>]
+    address: [<%= node[:network_setup].v4.address %>, <%= node[:network_setup].v6.address %>]
     action: update
     key: tsig-default
 
