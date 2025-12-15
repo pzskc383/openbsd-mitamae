@@ -1,6 +1,7 @@
-node.relayd_domains ||= []
-node.relayd_domains << "pzskc383.net"
-node.relayd_domains << "pzskc383.dp.ua"
+node[:relayd_domains] ||= []
+# node[:relayd_domains] << "pzskc383.net"
+node[:relayd_domains] << "pzskc383.dp.ua"
+node[:relayd_domains]
 
 notify!("create@template[/etc/relayd.conf]")
 
@@ -9,7 +10,7 @@ remote_file "/etc/httpd.conf.d/main_pzskc383.conf" do
   notifies :reload, 'service[httpd]'
 end
 
-node.httpd_config_files << "main_pzskc383.conf"
+node[:httpd_config_files] << "main_pzskc383.conf"
 notify!("create@template[/etc/httpd.conf]")
 
 openbsd_package "cgit"

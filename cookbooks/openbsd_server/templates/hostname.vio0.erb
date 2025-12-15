@@ -1,14 +1,14 @@
-<%- if node.network_setup.snippet -%>
-<%= node.network_setup.snippet %>
+<%- if node[:network_setup].snippet -%>
+<%= node[:network_setup].snippet %>
 <%- else -%>
-<%-   if node.network_setup.v4.use_dhcp -%>
+<%-   if node[:network_setup].v4.use_dhcp -%>
 inet autoconf
 <%-   else -%>
-inet <%= node.network_setup.v4.address %>
+inet <%= node[:network_setup].v4.address %>
 <%-   end -%>
-<%-   if node.network_setup.v6.use_slaac -%>
+<%-   if node[:network_setup].v6.use_slaac -%>
 inet6 autoconf -soii -temporary
 <%-   else -%>
-inet6 <%= node.network_setup.v6.address %>
+inet6 <%= node[:network_setup].v6.address %>
 <%-   end -%>
 <%- end -%>

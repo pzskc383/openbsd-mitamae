@@ -21,12 +21,12 @@ remote_file "/etc/resolv.conf" do
   mode "0644"
 end
 
-if node.network_setup.v6.use_slaac
+if node[:network_setup].v6.use_slaac
   service "slaacd" do
     action %i[enable start]
   end
 end
-if node.network_setup.v4.use_dhcp
+if node[:network_setup].v4.use_dhcp
   service "dhcpleased" do
     action %i[enable start]
   end
@@ -52,12 +52,12 @@ end
 
 file "/etc/motd" do
   action :edit
-  motd = node.motd || ""
+  motd = node[:motd] || ""
   block do |data|
     header = data.lines.first
 
     parts = [header, '']
-    unless node.motd.nil?
+    unless node[:motd].nil?
       parts << motd
       parts << ''
     end

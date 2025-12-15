@@ -6,8 +6,8 @@ $TTL 30m
 @ IN NS ns1
 @ IN NS ns2
 
-right IN A <%= node.hosts.f0rk][:v4 %>
-left IN A <%= node.hosts.airstrip3][:v4 %>
+right IN A <%= node[:hosts].f0rk.v4 %>
+left IN A <%= node[:hosts].airstrip3.v4 %>
 
 @ IN NSEC3PARAM 1 0 0 -
 
@@ -15,22 +15,22 @@ left IN A <%= node.hosts.airstrip3][:v4 %>
 @ IN CAA 128 issuewild "letsencrypt.org;validationmethods=dns-01"
 @ IN CAA 128 iodef "mailto:abuse@pzskc383.net"
 
-<%- node.hosts.each do |hostname, data| -%>
-<%= data.dns_shortname] %> IN A <%= data[:v4 %>
-<%= data.dns_shortname] %> IN AAAA <%= data[:v6 %>
+<%- node[:hosts].each do |hostname, data| -%>
+<%= data.dns_shortname %> IN A <%= data.v4 %>
+<%= data.dns_shortname %> IN AAAA <%= data.v6 %>
 <%= data.dns_shortname %> IN TXT "v=spf1 a -all"
 <%= hostname %> IN CNAME <%= data.dns_shortname %>
 <% end %>
 
 
-@ IN A <%= node.hosts["f0rk"].v4 %>
-@ IN AAAA <%= node.hosts["f0rk"].v6 %>
+@ IN A <%= node[:hosts]["f0rk"].v4 %>
+@ IN AAAA <%= node[:hosts]["f0rk"].v6 %>
 
 @ IN MX 10 f0
 @ IN MX 20 a2
 
 @ IN TXT "v=spf1 mx -all"
-<% node.hosts.each do |hostname, data| -%>
+<% node[:hosts].each do |hostname, data| -%>
 <% end -%>
 
 _dmarc IN TXT " v=DMARC1; p=quarantine; rua=mailto:abuse@pzskc383.net; ruf=mailto:abuse@pzskc383.net; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"

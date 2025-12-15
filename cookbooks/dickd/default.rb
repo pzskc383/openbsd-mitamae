@@ -35,7 +35,7 @@ block_in_file "/etc/inetd.conf" do
   notifies :restart, "service[inetd]"
 end
 
-pf_snippet "pass proto tcp to port telnet"
+pf_snippet "pass in proto tcp to port telnet"
 
 service "inetd" do
   action %i[enable start]

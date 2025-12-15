@@ -8,7 +8,7 @@ end
 template "/var/lego/lego_fqdn.sh" do
   source "templates/lego_fqdn.sh.erb"
   mode "0755"
-  variables(admin_email: node.lego_admin_email)
+  variables(admin_email: node[:lego_admin_email])
 end
 
 execute "acquire initial fqdn certificates" do
@@ -18,10 +18,9 @@ execute "acquire initial fqdn certificates" do
   end
 end
 
-cron_rand = ::Random.rand(60 * 24)
 cron "lego fqdn certificate renewal" do
-  hour (cron_rand % 24).to_s
-  minute (cron_rand % 60).to_s
-  day "*/9"
+  hour '~'
+  minute '~'
+  day "1~14,15~28"
   command "/var/lego/lego_fqdn.sh renew"
 end

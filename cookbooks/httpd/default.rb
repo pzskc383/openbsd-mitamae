@@ -103,7 +103,7 @@ snippet = %w[default fqdn].map do |host|
     /var/www/logs/access.#{host}.log                644  4     *    $W0   Z "rcctl reload httpd"
     /var/www/logs/error.#{host}.log                 644  7     250  *     Z "rcctl reload httpd"
   EXTRA
-end
+end.join
 newsyslog_snippet "http_default" do
   content snippet
 end

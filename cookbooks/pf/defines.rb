@@ -17,7 +17,7 @@ template "/etc/pf.conf" do
 end
 
 define :pf_snippet, content: nil do
-  node.pf_snippets << (params[:content] || params[:name])
+  node[:pf_snippets] << (params[:content] || params[:name])
 
   notify!("create@template[/etc/pf.conf]")
 end

@@ -6,7 +6,7 @@ errdocs "errdocs/"
 include "/etc/httpd.conf.d/default.conf"
 include "/etc/httpd.conf.d/fqdn.conf"
 
-<%- @node[:httpd_config_files].each do |filename| -%>
+<%- node[:httpd_config_files].each do |filename| -%>
 include "/etc/httpd.conf.d/<%= filename %>"
 <%- end -%>
 

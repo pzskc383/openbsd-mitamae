@@ -12,6 +12,6 @@ table <httpd> { 127.0.0.1 }
 table <sorry> disable { 127.0.0.1 }
 
 include "/etc/relayd.conf.d/http_relay.conf"
-<%- if @has_tls %>
+<%- if node[:relayd_has_tls] %>
 include "/etc/relayd.conf.d/tls_relay.conf"
 <%- end %>

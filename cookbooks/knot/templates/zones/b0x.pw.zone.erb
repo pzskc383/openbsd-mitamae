@@ -1,7 +1,7 @@
 $ORIGIN b0x.pw.
 $TTL 30m
 
-@ IN SOA ns root.post ( 1 4h 1h 2w 1h )
+@ IN SOA ns0 root.post ( 1 4h 1h 2w 1h )
 @ IN NS ns0
 @ IN NS ns1
 @ IN NSEC3PARAM 1 0 0 -
@@ -11,20 +11,20 @@ $TTL 30m
 @ IN MX 0 .
 @ IN TXT "v=spf1 -all"
 
-ns0 IN A <%= node.hosts.f0rk.v4 %>
-ns1 IN A <%= node.hosts.airstrip3.v4 %>
+ns0 IN A <%= node[:hosts].f0rk.v4 %>
+ns1 IN A <%= node[:hosts].airstrip3.v4 %>
 
-@ IN A <%= node.hosts.f0rk.v4 %>
-@ IN AAAA <%= node.hosts.f0rk.v6 c
+@ IN A <%= node[:hosts].f0rk.v4 %>
+@ IN AAAA <%= node[:hosts].f0rk.v6 %>
 
-the.main IN A <%= node.hosts.f0rk.v4 %>
-the.main IN AAAA <%= node.hosts.f0rk.v6 %>
-the.far IN A <%= node.hosts.airstrip3.v4 %>
-the.far IN AAAA <%= node.hosts.airstrip3.v6 %>
-the.smart IN A <%= node.ex1t.v4 %>
-the.smart IN AAAA <%= node.ex1t.v6 %>
+the.main IN A <%= node[:hosts].f0rk.v4 %>
+the.main IN AAAA <%= node[:hosts].f0rk.v6 %>
+the.far IN A <%= node[:hosts].airstrip3.v4 %>
+the.far IN AAAA <%= node[:hosts].airstrip3.v6 %>
+the.smart IN A <%= node[:ex1t].v4 %>
+the.smart IN AAAA <%= node[:ex1t].v6 %>
 
-<%- node.hosts.each do |hostname, data| -%>
+<%- node[:hosts].each do |hostname, data| -%>
 s.<%= data.dns_shortname %> IN A <%= data.v4 %>
 s.<%= data.dns_shortname %> IN AAAA <%= data.v6 %>
 
@@ -33,8 +33,8 @@ x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%- end %>
 
 <%- %w[the.smart x.ex1t s.x1].each do |name| %>
-<%= name %> IN A <%= node.ex1t.v4 %>
-<%= name %> IN AAAA <%= node.ex1t.v6 %>
+<%= name %> IN A <%= node[:ex1t].v4 %>
+<%= name %> IN AAAA <%= node[:ex1t].v6 %>
 <%- end %>
 
 

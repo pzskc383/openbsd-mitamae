@@ -25,7 +25,7 @@ template "/etc/newsyslog.conf" do
 end
 
 define :newsyslog_snippet, content: nil do
-  node.newsyslog_extra_lines << (params[:content] || params[:name])
+  node[:newsyslog_extra_lines] << (params[:content] || params[:name])
 
   notify!("create@template[/etc/newsyslog.conf]")
 end

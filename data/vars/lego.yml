@@ -12,16 +12,16 @@ lego_certs:
       - '*.pzskc383.dp.ua'
     zone: pzskc383.dp.ua
 
-  - name: bare_box
-    domains:
-      - b0x.pw
-    zone: b0x.pw
+  # - name: bare_box
+  #   domains:
+  #     - b0x.pw
+  #   zone: b0x.pw
 
-  - name: post_box
-    domains:
-      - post.b0x.pw
-      - my.post.b0x.pw
-    zone: b0x.pw
+  # - name: post_box
+  #   domains:
+  #     - post.b0x.pw
+  #     - my.post.b0x.pw
+  #   zone: b0x.pw
 
   # - name: boot_box
   #   domains:

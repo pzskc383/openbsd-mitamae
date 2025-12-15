@@ -13,13 +13,13 @@ execute "usermod -G _dovecot vmail" do
   not_if "id -nG vmail |grep -qF _dovecot"
 end
 
-tls_cert = node.mail_tls_cert || "/etc/ssl/fqdn.crt"
-tls_key = node.mail_tls_key || "/etc/ssl/private/fqdn.key"
+tls_cert = node[:mail_tls_cert] || "/etc/ssl/fqdn.crt"
+tls_key = node[:mail_tls_key] || "/etc/ssl/private/fqdn.key"
 
 lines_in_file "/etc/dovecot/dovecot.conf" do
   lines [
     "protocols = imap lmtp",
-    "listen = #{node.network_setup.v4.address},#{node.network_setup.v6.address}",
+    "listen = #{node[:network_setup].v4.address},#{node[:network_setup].v6.address}",
     "login_greeting = IMAP ready",
     "submission_host = 127.0.0.1:587",
     "mail_debug = yes"

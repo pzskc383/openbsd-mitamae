@@ -3,10 +3,10 @@ tls_opts = "edh params auto, no tlsv1.0, session tickets, ciphers TLS_AES_128_GC
 http protocol www_tls {
     tcp { nodelay }
 
-    tls { keypair <%= node.fqdn %>, $tls_opts }
-<%- node.relayd_domains.each do |domain| %>
+    tls { keypair <%= node[:fqdn] %>, $tls_opts }
+<%- node[:relayd_domains].each do |domain| -%>
     tls { keypair <%= domain %>, $tls_opts }
-<%- end %>
+<%- end -%>
 
     include "/etc/relayd.conf.d/http_headers.conf"
     

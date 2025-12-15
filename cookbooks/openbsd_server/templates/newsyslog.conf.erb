@@ -12,6 +12,7 @@
 /var/log/pflog1                         600  3     250  *     ZB "pkill -HUP -u root -U root -t - -x pflogd"
 /var/log/debug                          644  1     300  *     Z
 /var/log/remote                         644  1     300  *     Z
+
 <%- node[:newsyslog_extra_lines].each do |line| -%>
 <%= line %>
 <%- end -%>
