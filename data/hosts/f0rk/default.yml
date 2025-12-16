@@ -10,6 +10,7 @@ properties:
     - cookbooks/smtpd/default.rb
     - cookbooks/dovecot/default.rb
     - cookbooks/site_main/default.rb
+    - cookbooks/gopher/default.rb
   attributes:
     dns_shortname: f0
     motd: |-
