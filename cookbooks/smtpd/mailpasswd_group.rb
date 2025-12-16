@@ -1,2 +1,3 @@
-# Create _mailpasswd group for shared access to password file
-group "_mailpasswd"
+group "_mailpasswd" do
+  gid 1999
+end

@@ -13,7 +13,7 @@ enable-index-links=1
 enable-index-owner=0
 enable-filter-overrides=0
 enable-follow-links=1
-side-by-side-diffs=1
+side-by-side-diffs=0
 
 #snapshots=tar.gz zip
 

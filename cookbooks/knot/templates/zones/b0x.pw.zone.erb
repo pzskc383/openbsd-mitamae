@@ -1,46 +1,55 @@
 $ORIGIN b0x.pw.
 $TTL 30m
 
-@ IN SOA ns0 root.post ( 1 4h 1h 2w 1h )
-@ IN NS ns0
-@ IN NS ns1
+@ IN SOA f0.pzskc383.dp.ua. root.post ( <%= @serial %> 4h 1h 2w 1h )
+@ IN NS f0.pzskc383.dp.ua.
+@ IN NS a3.pzskc383.dp.ua.
 @ IN NSEC3PARAM 1 0 0 -
 @ IN CAA 128 issue "letsencrypt.org;validationmethods=dns-01"
 @ IN CAA 128 issuewild ";"
 @ IN CAA 128 iodef "mailto:reports+acme@post.b0x.pw"
 @ IN MX 0 .
 @ IN TXT "v=spf1 -all"
-
-ns0 IN A <%= node[:hosts].f0rk.v4 %>
-ns1 IN A <%= node[:hosts].airstrip3.v4 %>
-
 @ IN A <%= node[:hosts].f0rk.v4 %>
 @ IN AAAA <%= node[:hosts].f0rk.v6 %>
 
+; public host records
 the.main IN A <%= node[:hosts].f0rk.v4 %>
 the.main IN AAAA <%= node[:hosts].f0rk.v6 %>
 the.far IN A <%= node[:hosts].airstrip3.v4 %>
 the.far IN AAAA <%= node[:hosts].airstrip3.v6 %>
-the.smart IN A <%= node[:ex1t].v4 %>
-the.smart IN AAAA <%= node[:ex1t].v6 %>
 
+; internal hosts records
 <%- node[:hosts].each do |hostname, data| -%>
 s.<%= data.dns_shortname %> IN A <%= data.v4 %>
 s.<%= data.dns_shortname %> IN AAAA <%= data.v6 %>
-
 x.<%= hostname.to_s %> IN A <%= data.v4 %>
 x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%- end %>
 
+; ex1t server
 <%- %w[the.smart x.ex1t s.x1].each do |name| %>
 <%= name %> IN A <%= node[:ex1t].v4 %>
 <%= name %> IN AAAA <%= node[:ex1t].v6 %>
 <%- end %>
 
-
+; post
+<%- %w[post my.post].each do |host| -%>
+<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
+<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+<%- end -%>
 post IN MX 10 the.main
 post IN MX 20 the.far
 post IN TXT "v=spf1 mx -all"
-
 _dmarc IN TXT " v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.b0x.pw; ruf=mailto:reports+dmarc.f@post.b0x.pw; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
 _smtp._tls IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@post.b0x.pw"
+
+; boot
+<%- %w[boot.my].each do |host| -%>
+<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
+<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+<%- end -%>
+<%- %w[bsd alpine fedora].each do |os| -%>
+boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
+boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+<%- end -%>

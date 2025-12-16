@@ -105,6 +105,19 @@ server "_pzskc383_main" {
         }
     }
 
+    # gotwebd
+    location "/got" { 
+        block return 301 "/got/"
+    }
+    location "/got/" {
+        fastcgi { socket "/run/gotweb.sock" }
+    }
+    
+    location "/got/*" {
+        root "/htdocs/gotwebd"
+        request strip 1
+    }
+
     location * {
         root "/htdocs/pzskc383"
     }
@@ -121,8 +134,12 @@ server "_main_plain" {
 
     log {
         style forwarded
-        access "access.redir.log"
-        error "error.redir.log"
+        access "access.main-plain.log"
+        error "error.main-plain.log"
+    }
+    
+    location "/.well-known/acme-challenge/*" {
+        root "/htdocs/pzskc383"
     }
 
     location * {

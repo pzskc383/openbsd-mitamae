@@ -1,0 +1,496 @@
+/*
+ * Copyright (c) 2019 Jerome Kasper <neon.king.fr@gmail.com>
+ * Copyright (c) 2019, 2020 Tracey Emery <tracey@traceyemery.net>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+@import url("/stylesheets/reset.css");
+@import url("/stylesheets/monospace.css");
+
+:root {
+  --text-color: #000;
+  --text-color-alt: #666;
+  --background-color: #f8f8f8;
+  --background-color-alt: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-color: #fff;
+    --text-color-alt: #ccc;
+    --background-color: #2f2f2f;
+    --background-color-alt: #000;
+  }
+}
+body {
+	background-color: var(--background-color);
+	color: var(--text-color);
+}
+
+*, *::after, *::before {
+	box-sizing: border-box;
+}
+
+a {
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+
+pre {
+	background-color: var(--background-color-alt);
+}
+
+.diff_minus, .diff_submodule {
+	color: magenta;
+}
+.diff_plus, .diff_symlink, .diff_author {
+	color: cyan;
+}
+.diff_chunk_header, .diff_date {
+	background-color: var(--background-color-alt);
+	color: var(--text-color-alt);
+	font-weight: bold;
+}
+.diff_meta, .diff_executable, .diff_commit {
+	color: green;
+}
+.diff_directory {
+	color: blue;
+}
+
+.refs_str {
+	background-color: #243647;
+	color: #ffffff;
+	font-style: italic;
+	white-space: pre;
+}
+#header {
+	background-image: url('/images/bg.png')
+}
+#header img {
+	width: 32px;
+}
+#header a {
+	color: #ffffff;
+	text-decoration: none;
+}
+#header a:hover {
+	color: Gold;
+	text-decoration: none;
+}
+#site_path {
+	overflow: auto;
+	width: 100%;
+	background-color: #243647;
+}
+#site_link {
+	color: #ffffff;
+	overflow: hidden;
+}
+#site_link a {
+	color: #ffffff;
+	text-decoration: none;
+}
+#np_wrapper {
+	width: 100%;
+	border-bottom: 1px dotted #444444;
+	background-color: #f5fcfb;
+	overflow: hidden;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
+hr {
+	margin: 0;
+	color: var(--text-color-alt);
+}
+details {
+	border: 0;
+	margin-bottom: 0;
+}
+#nav_more {
+	text-align: center;
+	flex-grow: 2;
+}
+.navs_wrapper {
+	width: 100%;
+}
+.navs {
+	color: var(--text-color-alt);
+	text-decoration: none;
+}
+#site_owner_wrapper {
+	width: 100%;
+	background-color: var(--background-color-alt);
+	color: var(--text-color-alt);
+}
+header.subtitle {
+	color: var(--text-color-alt);
+}
+header.subtitle h2 {
+	color: var(--text-color-alt);
+}
+
+.brief {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.brief_meta {
+	flex-grow: 0;
+	flex-shrink: 0;
+}
+.briefs_age, .briefs_author, .briefs_id {
+	display: inline-block;
+	vertical-align: middle;
+}
+.briefs_age {
+	width: 140px;
+}
+.briefs_author {
+	width: 8.5em;
+	font-style: italic;
+}
+.briefs_id {
+	width: 8.5em;
+}
+.briefs_log {
+	width: 100%;
+}
+
+@media (min-width: 680px) {
+	.brief {
+		flex-wrap: nowrap;
+	}
+	.briefs_log {
+		width: auto;
+	}
+}
+
+.briefs_log summary {
+	cursor: pointer;
+}
+
+.briefs_toggle {
+	display: inline-block;
+	border: 1px solid #222;
+	border-radius: 3px;
+	user-select: none;
+}
+
+/* work around .commits being unusable here */
+.briefs_log > p {
+	white-space: pre-wrap;
+}
+
+.tag_age, .tag_name, .tag_log {
+	display: inline-block;
+	vertical-align: middle;
+}
+.tag_age {
+	width: 140px;
+}
+.tag_name {
+	width: 8.5em;
+	font-style: italic;
+}
+.tag_log {
+	width: 65%;
+}
+
+#tag_commit {
+	overflow: auto;
+}
+
+#index_header {
+	background-color: Khaki;
+}
+.index_project, .index_project_description, .index_project_owner,
+.index_project_age {
+	display: inline-block;
+	overflow: hidden;
+	vertical-align: middle;
+}
+.index_wrapper .index_project {
+	font-weight: bold;
+	text-decoration: underline;
+}
+.index_project {
+	width: 20%;
+}
+.index_project_description {
+	width: 30%;
+}
+.index_project_owner {
+	width: 25%;
+}
+.index_project_age {
+	width: 25%;
+	opacity: 0.7;
+}
+.index_project a {
+	color: #444444;
+	text-decoration: none;
+}
+.index_project a:hover {
+	color: SteelBlue;
+	text-decoration: none;
+}
+#index_next a {
+	color: #444444;
+	text-decoration: none;
+}
+#index_next a:hover {
+	color: SteelBlue;
+	text-decoration: none;
+}
+#index_prev a {
+	color: #444444;
+	text-decoration: none;
+}
+#index_prev a:hover {
+	color: SteelBlue;
+	text-decoration: none;
+}
+
+.page_header_wrapper {
+	background-color: #f5fcfb;
+}
+
+.commits_content {
+	width: 100%;
+}
+.commit {
+	white-space: pre-wrap;
+}
+
+#blame, #blob {
+	overflow: auto;
+}
+.blob_line > a {
+	display: inline-block;
+	text-align: right;
+	width: 60px;
+	user-select: none;
+}
+.blame_code, .blob_code {
+	/* fixes the width of the first tab */
+	display: inline-block;
+}
+.blame_line:target, .blob_line:target {
+	background-color: Khaki;
+}
+.blame_number, .blob_number {
+	width: 6em;
+	overflow: hidden;
+}
+.blame_hash {
+	width: 6em;
+	overflow: auto;
+}
+.blame_date {
+	width: 7em;
+	overflow: auto;
+}
+.blame_author {
+	width: 6em;
+	overflow: hidden;
+}
+
+#tree {
+	border-collapse: collapse;
+}
+.tree_wrapper:nth-child(odd) {
+	background-color: var(--background-color-alt);
+}
+.tree_line {
+	width: 20em;
+}
+.tree_line_blank {
+	width: 9.5em;
+}
+#tree_content pre {
+	white-space: pre-wrap;
+}
+
+#diff {
+	overflow: auto;
+}
+
+#summary_wrapper {
+	background-color: Khaki;
+}
+
+dl {
+	display: flex;
+	flex-wrap: wrap;
+}
+dt {
+	width: 120px;
+}
+dd {
+	width: calc(100% - 130px);
+	flex-grow: 2;
+}
+
+.clone-url {
+	white-space: pre-wrap;
+}
+
+.commit-msg {
+	white-space: pre-wrap;
+}
+
+.commit-id {
+	width: 100%;
+	display: inline-block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.branches_age, .branches_space, .branch {
+	display: inline-block;
+	vertical-align: middle;
+}
+.branches_age {
+	width: calc(140px + 8.5em);
+}
+/* mobile (<=680px) */
+@media(max-width:680px) {
+	#index_header {
+		display: none;
+	}
+	.index_wrapper {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+	.index_wrapper .index_project,
+	.index_wrapper .index_project_description {
+		width: 100%;
+	}
+	.index_wrapper .index_project_owner,
+	.index_wrapper .index_project_age {
+		width: 50%;
+	}
+	.index_wrapper .index_project_age {
+		text-align: right;
+	}
+
+	#summary_wrapper dt,
+	#summary_wrapper dd {
+		width: 100%;
+	}
+	#summary_wrapper dt {
+		font-weight: bold;
+	}
+}
+
+/* dark theme */
+@media (prefers-color-scheme: dark) {
+	body {
+		color: #eee;
+		background-color: #282A36;
+	}
+
+	hr {
+		border-style: solid;
+	}
+
+	#index_header, #summary_wrapper {
+		background-color: #BD93F9;
+		color: #222;
+	}
+
+	#header {
+		background-image: unset;
+	}
+
+	.index_project a {
+		color: #8BE9FD;
+		text-decoration: none;
+	}
+	.index_project a:hover {
+		color: #FFFFA5;
+		text-decoration: none;
+	}
+
+	.index_wrapper {
+		border-bottom-style: solid;
+		border-bottom-width: 1px;
+		border-image: linear-gradient(90deg, #FF79C6, #BD93F9 50%) 1;
+	}
+
+	a {
+		color: #FF79C6;
+	}
+
+	.diff_minus, .diff_submodule {
+		color: #FF79C6;
+	}
+	.diff_plus, .diff_symlink, .diff_author {
+		color: #8BE9FD;
+	}
+	.diff_chunk_header, .diff_date {
+		background-color: unset;
+		color: #FFB86C;
+	}
+	.diff_meta, .diff_executable, .diff_commit {
+		color: #6272A4;
+	}
+
+	.blame_code {
+		color: #eee;
+	}
+
+	.blame_wrapper {
+		color: #6272A4;
+	}
+
+	.blame_author {
+		color: #8BE9FD;
+		text-decoration: none;
+	}
+
+	.blame_line:target, .blob_line:target {
+		background-color: #44475a;
+	}
+
+	#site_owner_wrapper, #np_wrapper {
+		background-color: unset;
+	}
+
+	#site_owner_wrapper {
+		border-top: 1px solid #444444;
+	}
+
+	.page_header_wrapper {
+		background-color: unset;
+	}
+
+	.navs_wrapper {
+		background-color: #282A36;
+	}
+
+	.tree_wrapper:nth-child(even) {
+		background-color: #282A36;
+	}
+
+	.tree_wrapper:nth-child(odd) {
+		background-color: #3e3e3e;
+	}
+}

@@ -1,6 +1,8 @@
 include "/etc/httpd.conf.d/macro.conf"
 loopback = "lo0"
 
+prefork 5
+
 errdocs "errdocs/"
 
 include "/etc/httpd.conf.d/default.conf"

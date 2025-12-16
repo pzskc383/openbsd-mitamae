@@ -14,7 +14,6 @@ sysctl "pf" do
     net.inet.icmp.maskrepl=0
     net.inet.icmp.tstamprepl=0
     net.inet.icmp.rediraccept=0
-    net.inet6.icmp6.rediraccept=0
     net.inet.gre.allow=1
     net.inet.ipcomp.enable=1
     net.inet.tcp.rfc3390=1
@@ -24,7 +23,7 @@ sysctl "pf" do
   ]
 end
 
-%w[hostname.pflog0 hostname.pflog1].each do |f|
+%w[hostname.pflog0].each do |f|
   file "/etc/#{f}" do
     content "up"
   end
@@ -36,21 +35,4 @@ end
 file "/etc/pf/banned.table" do
   content ""
   not_if { ::File.exist?("/etc/pf/banned.table") }
-end
-
-link "/etc/rc.d/pflogd1" do
-  to "/etc/rc.d/pflogd"
-end
-
-service "pflogd1" do
-  action [:enable]
-end
-
-execute "pflogd1_flags" do
-  command "rcctl set pflogd1 flags '-i pflog1 -s 1440'"
-  not_if "grep -E 'pflogd1_flags.*pflog1' /etc/rc.conf.local"
-end
-
-service "pflogd1" do
-  action [:start]
 end

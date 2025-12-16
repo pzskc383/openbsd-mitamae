@@ -28,14 +28,14 @@ block_in_file "/etc/inetd.conf" do
   marker_start "# 8==================================>"
   marker_end   "# <==================================8"
   content <<~EOCONF
-    telnet stream  tcp  nowait nobody  #{dickd_bin}  erection
-    telnet stream  tcp6 nowait nobody  #{dickd_bin}  erection
+    telnet stream tcp  nowait nobody #{dickd_bin} erection
+    telnet stream tcp6 nowait nobody #{dickd_bin} erection
   EOCONF
 
   notifies :restart, "service[inetd]"
 end
 
-pf_snippet "pass in proto tcp to port telnet"
+pf_open "telnet"
 
 service "inetd" do
   action %i[enable start]

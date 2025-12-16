@@ -153,8 +153,4 @@ service "dovecot" do
 end
 
 include_recipe "../pf/defines.rb"
-pf_snippet "dovecot" do
-  content <<~PF
-    pass in proto tcp to port imap
-  PF
-end
+pf_open "imap"

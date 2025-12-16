@@ -21,3 +21,17 @@ define :pf_snippet, content: nil do
 
   notify!("create@template[/etc/pf.conf]")
 end
+
+define :pf_open, port: nil, proto: nil, label: nil do
+  port = params[:port] || params[:name]
+  proto = params[:proto] || "tcp"
+
+  rule_opts = proto == "udp" ? "keep state" : "synproxy state"
+  rule_opts = "label #{params[:label]} #{rule_opts}" if params[:label]
+
+  rule = "pass in on $if_public proto #{proto} to port #{port} #{rule_opts}"
+
+  pf_snippet "port #{port}/#{proto}" do
+    content rule
+  end
+end

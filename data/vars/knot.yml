@@ -4,11 +4,6 @@ knot_zones:
     secondaries:
       - airstrip3
 
-  - name: pzskc383.dp.ua
-    primary: f0rk
-    secondaries:
-      - airstrip3
-
   - name: b0x.pw
     primary: f0rk
     secondaries:

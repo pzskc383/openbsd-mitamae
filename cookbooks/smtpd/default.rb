@@ -170,9 +170,5 @@ execute "restart_smtpd" do
 end
 
 include_recipe "../pf/defines.rb"
-pf_snippet "mail" do
-  ports = mail_role == 'primary' ? '{ smtp submission }' : 'smtp'
-  content <<~PF
-    pass in proto tcp to port #{ports}
-  PF
-end
+pf_open "smtp"
+pf_open "submission" if mail_role == 'primary'

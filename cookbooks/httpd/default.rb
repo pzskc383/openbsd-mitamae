@@ -1,6 +1,6 @@
 # HTTPD cookbook - OpenBSD's httpd web server with relayd
 node.reverse_merge!({
-  relayd_has_fqdn_cert: false,
+  relayd_tls_certs: [],
   httpd_config_files: []
 })
 
@@ -32,20 +32,9 @@ template '/etc/httpd.conf' do
   notifies :restart, 'service[httpd]'
 end
 
-node[:relayd_has_fqdn_cert] = File.exist? '/etc/ssl/fqdn.crt'
-node[:relayd_has_tls] = node[:relayd_has_fqdn_cert] || !node[:relayd_domains].nil?
-
 directory '/etc/relayd.conf.d'
 remote_file '/etc/relayd.conf.d/http_headers.conf' do
   source 'files/relayd.http_headers.conf'
-  notifies :restart, 'service[relayd]'
-end
-template '/etc/relayd.conf.d/http_relay.conf' do
-  source 'templates/relayd/http_relay.conf.erb'
-  notifies :restart, 'service[relayd]'
-end
-template '/etc/relayd.conf.d/tls_relay.conf' do
-  source 'templates/relayd/tls_relay.conf.erb'
   notifies :restart, 'service[relayd]'
 end
 template '/etc/relayd.conf' do
@@ -88,23 +77,17 @@ service 'relayd' do
 end
 
 include_recipe "../pf/defines.rb"
-pf_snippet 'httpd' do
-  content <<~PF
-    # http and https services
-    pass proto tcp to port { http https } set queue http
-  PF
-end
+%w[http https].each { |port| pf_open(port) }
 node[:pf_enable_relayd] = true
 notify!("create@template[/etc/pf.conf]")
 
 include_recipe "../openbsd_server/defines.rb"
-snippet = %w[default fqdn].map do |host|
-  <<~EXTRA
-    /var/www/logs/access.#{host}.log                644  4     *    $W0   Z "rcctl reload httpd"
-    /var/www/logs/error.#{host}.log                 644  7     250  *     Z "rcctl reload httpd"
-  EXTRA
-end.join
 newsyslog_snippet "http_default" do
-  content snippet
+  content <<~LOGS
+    /var/www/logs/access.default.log                644  4     *    $W0   Z "rcctl reload httpd"
+    /var/www/logs/error.default.log                 644  7     250  *     Z "rcctl reload httpd"
+    /var/www/logs/access.fqdn.log                   644  4     *    $W0   Z "rcctl reload httpd"
+    /var/www/logs/error.fqdn.log                    644  7     250  *     Z "rcctl reload httpd"
+  LOGS
 end
 notify!("create@template[/etc/newsyslog.conf]")

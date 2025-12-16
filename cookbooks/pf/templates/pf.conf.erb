@@ -4,12 +4,11 @@ set debug warn
 set loginterface egress
 set optimization normal
 set ruleset-optimization none
-set reassemble yes
+set reassemble yes no-df
 set state-defaults source-track rule
 set state-policy if-bound
 set syncookies adaptive (start 25%, end 12%)
 set fingerprints "/etc/pf.os"
-set limit { states 100000, src-nodes 100000, table-entries 400000 }
 set skip on { lo0 }
 
 # host tables
@@ -39,24 +38,15 @@ table <banned> persist counters file "/etc/pf/banned.table"
 if_public="vio0"
 if_wglan="wg0"
 log_out = "log(user)"
-log_block = "log(to pflog1)"
+log_block = "log"
 log_icmp = "log"
 ratelimit_icmp = "max-pkt-rate 100/10"
+default_state = "synproxy state"
 
 # queues
-queue rootq on $if_public bandwidth 990M max 1G
-queue ssh parent rootq bandwidth 100M
-queue ssh_bulk parent ssh bandwidth 80M
-queue ssh_prio parent ssh bandwidth 20M min 2M
-queue http parent rootq bandwidth 400M
-queue dns parent rootq bandwidth 100M
-queue def parent rootq bandwidth 500M default
-
-                                                                                            
-# match out on $if_public proto tcp from port { http https } to any set queue http no state
-# match out on $if_public proto tcp from port 38322 to any set queue(ssh_bulk, ssh_prio) no state
-# match out on $if_public proto { tcp udp } from port domain to any set queue dns no state
-
+queue rootq on $if_public bandwidth 1G max 2.5G
+queue def_prio parent rootq bandwidth 100M min 10M
+queue def parent rootq bandwidth 900M default
 
 # base
 block drop in $log_block on $if_public
@@ -64,14 +54,16 @@ block return out $log_block proto { tcp, udp }
 
 # quick block
 block drop in $log_block quick on $if_public from <banned>
-block drop in $log_block quick on $if_public inet from <vogons4>
-block drop in $log_block quick on $if_public inet6 from <vogons6>
-block return out $log_block quick on $if_public inet to <vogons4>
-block return out $log_block quick on $if_public inet6 to <vogons6>
+# block drop in $log_block quick on $if_public from <overload>
+
+block drop in $log_block quick on $if_public inet from <bogons4>
+block return out $log_block quick on $if_public inet to <bogons4>
+block drop in $log_block on $if_public inet6 from <bogons6>
+block return out $log_block on $if_public inet6 to <bogons6>
 
 ## scrub/normalize
-# match in on $if_public scrub (no-df random-id min-ttl 64)
-# match in on $if_public proto tcp scrub(reassemble tcp max-mss 1440)
+match in on $if_public scrub (no-df random-id)
+match in on $if_public proto tcp scrub(reassemble tcp max-mss 1440)
 
 # icmp|6
 pass $log_icmp on $if_public inet proto icmp $ratelimit_icmp
@@ -80,17 +72,18 @@ pass $log_icmp on $if_public inet6 proto ipv6-icmp $ratelimit_icmp
 <%- if node[:pf_enable_relayd] -%>
 anchor "relayd/*" on $if_public
 <%- end -%>
+#services
 <% node[:pf_snippets].each do |snippet| -%>
 <%= snippet %>
-<% end -%>
+<%- end -%>
 
-# outgoing users usage
-pass out on $if_public proto { tcp udp } to port domain user { _unbound _knot }
-pass out on $if_public proto udp to port { ntp https } user _ntp
-pass out on $if_public proto tcp to port { ftp http https } group { _pfetch _pkgfetch _syspatch }
-pass out on $if_public proto tcp to port smtp user { _smtpd _spamd }
+# traffic from server
+pass out $log_out on $if_public proto { tcp udp } to port domain user { _unbound _knot }
+pass out $log_out on $if_public proto udp to port ntp user _ntp
+pass out $log_out on $if_public proto tcp to port https user _ntp
+pass out $log_out on $if_public proto tcp to port { ftp http https } group { _pfetch _pkgfetch _syspatch }
+pass out $log_out on $if_public proto tcp to port smtp user _smtpd
 pass out $log_out on $if_public proto { tcp udp } user root allow-opts
-# pass out $log_out on $if_public proto { tcp udp } group wheel allow-opts
 
 
 # vim: ft=pf

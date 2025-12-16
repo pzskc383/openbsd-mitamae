@@ -71,4 +71,4 @@ end
 
 include_recipe "../pf/defines.rb"
 
-pf_snippet "pass proto tcp to port 38322 set queue(ssh_bulk, ssh_prio)"
+pf_open 383_22

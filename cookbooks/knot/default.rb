@@ -80,12 +80,11 @@ service 'knot' do
 end
 
 KNOT_KEYTYPES = %w[KSK ZSK].freeze
-node[:knot_zones].each do |z|
+node[:knot_zones].filter { |z| z[:primary] == node[:hostname] }.each do |z|
   now = Time.now
   midnight = Time.new(now.year, now.month, now.day, 0, 0, 0)
-  part = ((now.to_i - midnight.to_i) * 99 / 86_400)
-  serial = Kernel.format("%s%02d", "#{now.year}#{now.month}#{now.day}", part)
-  next unless z[:primary] == node[:hostname]
+  day_part = ((now.to_i - midnight.to_i) * 99 / 86_400)
+  serial = format("%s%02d", "#{now.year}#{now.month}#{now.day}", day_part)
 
   zone = z[:name]
   dnskey = node[:knot_dnssec].find { |d| d[:zone] == zone }
@@ -98,10 +97,7 @@ node[:knot_zones].each do |z|
     owner '_knot'
     group 'wheel'
 
-    variables(
-      hosts: node[:hosts],
-      serial: serial
-    )
+    variables(serial: serial)
 
     notifies :run, "execute[reload #{zone}]"
   end
@@ -141,8 +137,9 @@ directory key_import_dir do
   only_if "test -d #{key_import_dir}"
 end
 
-pf_snippet 'knot' do
-  content <<~PF
-    pass in proto { udp tcp } to port domain set queue dns
-  PF
+%w[tcp udp].each do |proto|
+  pf_open "domain" do
+    port "domain"
+    proto proto
+  end
 end
