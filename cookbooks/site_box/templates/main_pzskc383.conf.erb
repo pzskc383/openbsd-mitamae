@@ -1,0 +1,17 @@
+# main domain
+server "_box_main" {
+    alias "b0x.pw"
+
+    listen on $loopback port $redirect_port
+    listen on $loopback port $serve_port
+
+    log {
+        style forwarded
+        access "access.box_main.log"
+        error "error.box_main.log"
+    }
+
+    location * {
+        root "/htdocs/box_main"
+    }
+}
