@@ -1,13 +1,13 @@
 <%- other_hosts = %w[airstrip3] -%>
 HOSTS = ( <%= other_hosts.join(' ') %> )
 
-<% @lego_certs.each do |cert| -%>
+<%- node[:lego_certs].each do |cert| -%>
+<%- next unless cert[:distributed] -%>
 <%- upcased = cert.name.upcase.gsub('-', '_') -%>
 FILES_<%= upcased %> = ( /etc/ssl/<%= cert.domains.first %>.crt /etc/ssl/private/<%= cert.domains.first %>.key )
 
 ${FILES_<%= upcased %>} -> ${HOSTS}
 	install -overify ;
-	special "rcctl restart httpd && rcctl restart relayd && rcctl restart smtpd" ;
 
 <% end %>
 # vim: ft=rdist
