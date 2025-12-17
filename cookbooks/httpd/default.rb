@@ -61,8 +61,6 @@ fqdn_hosts.each do |type, value|
     source "templates/site.fqdn/hello.html.erb"
     variables(hostname: value)
     mode "0644"
-    owner "root"
-    group "daemon"
   end
 end
 

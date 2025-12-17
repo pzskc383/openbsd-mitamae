@@ -140,6 +140,11 @@ execute "makemap passwd" do
   command "makemap -t set /etc/mail/passwd"
 end
 
+package "opensmtpd-filter-dkimsign"
+# execute "generate DKIM key" do
+
+# end
+
 template "/etc/mail/smtpd.conf" do
   source "templates/smtpd.conf.erb"
   mode "0640"
@@ -156,7 +161,6 @@ template "/etc/mail/smtpd.conf" do
   notifies :run, "execute[restart_smtpd]"
 end
 
-# Enable and start smtpd service
 service "smtpd" do
   action %i[enable start]
   only_if "smtpd -n"

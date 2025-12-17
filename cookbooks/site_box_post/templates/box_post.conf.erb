@@ -1,0 +1,21 @@
+server "_box_boot_root" {
+    alias "post.b0x.pw"
+    alias "my.post.b0x.pw"
+    alias "mail.b0x.pw"
+    alias "my.mail.b0x.pw"
+
+    listen on $loopback port $redirect_port
+    listen on $loopback port $serve_port
+
+    errdocs "/htdocs/box_main/err"
+
+    log {
+        style forwarded
+        access "access.box_post.log"
+        error "error.box_post.log"
+    }
+
+    location * {
+        root "/htdocs/box_post"
+    }
+}

@@ -19,6 +19,10 @@ mail_domains:
     admin_account: owner@post.b0x.pw
     catchall_account: false
     catchall_subdomains: false
+    aliases:
+      - mail.b0x.pw
+      - my.post.b0x.pw
+      - my.mail.b0x.pw
     redirects:
       - abuse: owner@post.b0x.pw
       - reports: owner@post.b0x.pw

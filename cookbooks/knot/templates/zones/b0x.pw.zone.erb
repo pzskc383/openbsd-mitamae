@@ -34,22 +34,24 @@ x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%- end %>
 
 ; post
-<%- %w[post my.post].each do |host| -%>
+<%- %w[post my.post mail my.mail].each do |host| -%>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+<%= host %> IN MX 10 the.main
+<%= host %> IN MX 20 the.far
+<%= host %> IN TXT "v=spf1 mx -all"
+_dmarc.<%= host %> IN TXT " v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.b0x.pw; ruf=mailto:reports+dmarc.f@post.b0x.pw; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
+_smtp._tls.<%= host %> IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@post.b0x.pw"
 <%- end -%>
-post IN MX 10 the.main
-post IN MX 20 the.far
-post IN TXT "v=spf1 mx -all"
-_dmarc IN TXT " v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.b0x.pw; ruf=mailto:reports+dmarc.f@post.b0x.pw; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
-_smtp._tls IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@post.b0x.pw"
 
 ; boot
-<%- %w[boot.my].each do |host| -%>
+<%- %w[boot.my xyz.boot.my].each do |host| -%>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+<%= host %> IN MX 0 .
 <%- end -%>
 <%- %w[bsd alpine fedora].each do |os| -%>
 boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
 boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+boot.<%= os %>.on.my IN MX 0 .
 <%- end -%>

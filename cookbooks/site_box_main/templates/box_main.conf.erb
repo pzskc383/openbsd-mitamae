@@ -4,6 +4,8 @@ server "_box_main" {
 
     listen on $loopback port $redirect_port
     listen on $loopback port $serve_port
+    
+    errdocs "/htdocs/box_main/err"
 
     log {
         style forwarded

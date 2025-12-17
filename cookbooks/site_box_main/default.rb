@@ -3,21 +3,24 @@ node[:relayd_tls_certs] << "b0x.pw"
 
 notify!("create@template[/etc/relayd.conf]")
 
-node[:httpd_config_files] << "main_box.conf"
-remote_file "/etc/httpd.conf.d/main_box.conf" do
-  source "templates/main_box.conf.erb"
+node[:httpd_config_files] << "box_main.conf"
+remote_file "/etc/httpd.conf.d/box_main.conf" do
+  source "templates/box_main.conf.erb"
   notifies :reload, 'service[httpd]'
 end
-notify!("create@template[/etc/httpd.conf]")
 
 directory "/var/www/htdocs/box_main"
 %w[favicon.ico index.html robots.txt].each do |fname|
   remote_file "/var/www/htdocs/box_main/#{fname}" do
     source "files/#{fname}"
     mode '0644'
-    owner 'root'
-    group 'daemon'
   end
+end
+
+directory "/var/www/htdocs/box_main/err"
+remote_file "/var/www/htdocs/box_main/err/err.html" do
+  source "files/err.html"
+  mode "0644"
 end
 
 include_recipe "../openbsd_server/defines.rb"

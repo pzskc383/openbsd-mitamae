@@ -1,0 +1,58 @@
+server "_box_boot_root" {
+    alias "boot.my.b0x.pw"
+
+    listen on $loopback port $redirect_port
+    listen on $loopback port $serve_port
+
+    errdocs "/htdocs/box_main/err"
+
+    log {
+        style forwarded
+        access "access.box_boot.log"
+        error "error.box_boot.log"
+    }
+
+    location * {
+        root "/htdocs/box_boot/root"
+    }
+}
+
+server "_box_boot_xyz" {
+    alias "xyz.boot.my.b0x.pw"
+
+    listen on $loopback port $redirect_port
+    listen on $loopback port $serve_port
+
+    errdocs "/htdocs/box_main/err"
+
+    log {
+        style forwarded
+        access "access.box_boot.log"
+        error "error.box_boot.log"
+    }
+
+    location * {
+        root "/htdocs/box_boot/xyz"
+    }
+}
+
+<%- %w[bsd alpine fedora].each do |os| -%>
+server "_box_boot_<%= os %>" {
+    alias "boot.<%= os %>.on.my.b0x.pw"
+
+    listen on $loopback port $redirect_port
+    listen on $loopback port $serve_port
+
+    errdocs "/htdocs/box_main/err"
+
+    log {
+        style forwarded
+        access "access.box_boot.log"
+        error "error.box_boot.log"
+    }
+
+    location * {
+        root "/htdocs/box_boot/<%= os %>"
+    }
+}
+<%- end -%>

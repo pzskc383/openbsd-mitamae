@@ -1,7 +1,6 @@
 node[:relayd_tls_certs] ||= []
-# node[:relayd_tls_certs] << "pzskc383.net"
+node[:relayd_tls_certs] << "pzskc383.net"
 node[:relayd_tls_certs] << "pzskc383.dp.ua"
-node[:relayd_tls_certs]
 
 notify!("create@template[/etc/relayd.conf]")
 
