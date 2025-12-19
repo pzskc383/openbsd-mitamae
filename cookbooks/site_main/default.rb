@@ -1,6 +1,7 @@
-node[:relayd_tls_certs] ||= []
-node[:relayd_tls_certs] << "pzskc383.net"
-node[:relayd_tls_certs] << "pzskc383.dp.ua"
+node[:relayd_http_filter_snippets].append <<~SNIPPET
+  pass request quick header "Host" value "pzskc383.dp.ua"
+  pass request quick header "Host" value "pzskc383.net"
+SNIPPET
 
 notify!("create@template[/etc/relayd.conf]")
 

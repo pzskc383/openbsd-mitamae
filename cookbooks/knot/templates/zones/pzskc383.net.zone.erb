@@ -10,8 +10,8 @@ $TTL 30m
 @ IN CAA 128 iodef "mailto:reports+acme@pzskc383.net"
 @ IN A <%= node[:hosts]["f0rk"].v4 %>
 @ IN AAAA <%= node[:hosts]["f0rk"].v6 %>
-@ IN MX 10 f0
-@ IN MX 20 a2
+@ IN MX 10 the.main.b0x.pw.
+@ IN MX 20 the.far.b0x.pw.
 @ IN TXT "v=spf1 mx -all"
 
 <%- node[:hosts].each do |hostname, data| -%>
@@ -21,8 +21,11 @@ $TTL 30m
 <%= hostname %> IN CNAME <%= data.dns_shortname %>
 <% end %>
 
-_dmarc IN TXT " v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.pzskc383.net; ruf=mailto:reports+dmarc.f@post.pzskc383.net; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
-_smtp._tls IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@post.pzskc383.net"
+_dmarc IN TXT "v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@pzskc383.net; ruf=mailto:reports+dmarc.f@pzskc383.net; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
+_smtp._tls IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@pzskc383.net"
+<%- if node[:mail_dkim_dns_rr] -%>
+e._domainkey IN TXT "<%= node[:mail_dkim_dns_rr] %>"
+<%- end -%>
 
 _submission._tcp   IN SRV 0 0 587  f0
 _imap._tcp         IN SRV 0 0 143  f0

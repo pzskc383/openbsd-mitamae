@@ -15,7 +15,7 @@ define :block_in_file, content: nil, marker_start: nil, marker_end: nil do
   end
 end
 
-define :lines_in_file, lines: [] do
+define :lines_in_file, lines: [] do # rubocop:disable Metrics/BlockLength
   commands = params[:lines].map do |line|
     command =
       case line
@@ -74,7 +74,7 @@ define :notify! do
   parsed = NOTIFY_RX.match(params[:name])
   raise "invalid notify! spec: #{params[:name]}" if parsed.nil?
 
-  local_block_name = ["notify", parsed[:action], parsed[:resource], parsed[:name]].join(':')
+  local_block_name = "notify!#{parsed[:action]}@#{parsed[:resource]}[#{parsed[:name]}]"
 
   local_ruby_block local_block_name do
     block { true }

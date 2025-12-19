@@ -28,24 +28,27 @@ x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%- end %>
 
 ; ex1t server
-<%- %w[the.smart x.ex1t s.x1].each do |name| %>
+<%- %w[the.smart x.ex1t s.x1].each do |name| -%>
 <%= name %> IN A <%= node[:ex1t].v4 %>
 <%= name %> IN AAAA <%= node[:ex1t].v6 %>
-<%- end %>
+<%- end -%>
 
-; post
-<%- %w[post my.post mail my.mail].each do |host| -%>
+; post+aliases
+<%- %w[post p my.post mail my.mail].each do |host| -%>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= host %> IN MX 10 the.main
 <%= host %> IN MX 20 the.far
 <%= host %> IN TXT "v=spf1 mx -all"
-_dmarc.<%= host %> IN TXT " v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.b0x.pw; ruf=mailto:reports+dmarc.f@post.b0x.pw; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
+_dmarc.<%= host %> IN TXT "v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.b0x.pw; ruf=mailto:reports+dmarc.f@post.b0x.pw; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
 _smtp._tls.<%= host %> IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@post.b0x.pw"
+<%- if node[:mail_dkim_dns_rr] -%>
+e._domainkey.<%= host %> IN TXT "<%= node[:mail_dkim_dns_rr] %>"
+<%- end -%>
 <%- end -%>
 
 ; boot
-<%- %w[boot.my xyz.boot.my].each do |host| -%>
+<%- %w[b boot.my xyz.boot.my].each do |host| -%>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= host %> IN MX 0 .
@@ -55,3 +58,12 @@ boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
 boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 boot.<%= os %>.on.my IN MX 0 .
 <%- end -%>
+
+; talk
+talk IN A <%= node[:hosts][:f0rk][:v4] %>
+talk IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+talk IN MX 0 .
+_xmpp-client._tcp.talk  IN SRV 0 0 5222 talk
+_xmpp-server._tcp.talk  IN SRV 0 0 5269 talk
+_xmpps-client._tcp.talk IN SRV 0 0 5223 talk
+_xmpps-server._tcp.talk IN SRV 0 0 5270 talk

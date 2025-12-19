@@ -4,7 +4,7 @@ HOSTS = ( <%= other_hosts.join(' ') %> )
 <%- node[:lego_certs].each do |cert| -%>
 <%- next unless cert[:distributed] -%>
 <%- upcased = cert.name.upcase.gsub('-', '_') -%>
-FILES_<%= upcased %> = ( /etc/ssl/<%= cert.domains.first %>.crt /etc/ssl/private/<%= cert.domains.first %>.key )
+FILES_<%= upcased %> = ( /etc/ssl/<%= cert.name %>.crt /etc/ssl/private/<%= cert.name %>.key )
 
 ${FILES_<%= upcased %>} -> ${HOSTS}
 	install -overify ;

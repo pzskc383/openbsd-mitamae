@@ -5,7 +5,7 @@ server "_pzskc383_main" {
     alias "*.pzskc383.dp.ua"
     alias "pzskc383.dp.ua"
 
-    listen on $loopback port $serve_port
+    listen on $loopback port $httpd_tls_port
 
     log {
         style forwarded
@@ -130,7 +130,7 @@ server "_main_plain" {
     alias "*.pzskc383.dp.ua"
     alias "pzskc383.dp.ua"
 
-    listen on $loopback port $redirect_port
+    listen on $loopback port $httpd_plain_port
 
     log {
         style forwarded

@@ -3,7 +3,6 @@ include "/etc/httpd.conf.d/macro.conf"
 public_ipv4 = "<%= node[:network_setup][:v4][:address] %>"
 public_ipv6 = "<%= node[:network_setup][:v6][:address] %>"
 
-tls_opts = "edh params auto, no tlsv1.0, session tickets, ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 
 prefork 5
 interval 30
@@ -12,32 +11,33 @@ log connection # errors
 
 # HTTP plain
 http protocol http_plain {
-    tcp { nodelay }
+    tcp { sack, backlog 512 }
+    return error style "* { font-family: monospace; color: #f00; background-color: #333; font-weight: bold; }"
     include "/etc/relayd.conf.d/http_headers.conf"
-    
-    pass
 }
 
 relay ipv4_www {
     listen on $public_ipv4 port 80
     protocol http_plain
-
-    forward to 127.0.0.1 port $redirect_port 
+    forward to 127.0.0.1 port $httpd_plain_port 
 }
 
 relay ipv6_www {
     listen on $public_ipv6 port 80
     protocol http_plain
-
-    forward to 127.0.0.1 port $redirect_port 
+    forward to 127.0.0.1 port $httpd_plain_port 
 }
 
 <%- if !node[:relayd_tls_certs].empty? %>
 # TLS
 http protocol http_tls {
-    tcp { nodelay }
+    tcp { sack, backlog 512 }
+    tls edh params auto
+    tls no tlsv1.0
+    tls session tickets
+    tls ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
 <%- node[:relayd_tls_certs].each do |cert| -%>
-    tls { keypair <%= cert %>, $tls_opts }
+    tls { keypair <%= cert %> }
 <%- end -%>
 
     include "/etc/relayd.conf.d/http_headers.conf"
@@ -46,14 +46,12 @@ http protocol http_tls {
 relay ipv4_tls {
     listen on $public_ipv4 port 443 tls
     protocol http_tls
-
-    forward to 127.0.0.1 port $serve_port 
+    forward to 127.0.0.1 port $httpd_tls_port 
 }
 
 relay ipv6_tls {
     listen on $public_ipv6 port 443 tls
     protocol http_tls
-
-    forward to 127.0.0.1 port $serve_port 
+    forward to 127.0.0.1 port $httpd_tls_port 
 }
 <%- end %>

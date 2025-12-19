@@ -1,14 +1,9 @@
 # HTTPD cookbook - OpenBSD's httpd web server with relayd
 node.reverse_merge!({
   relayd_tls_certs: [],
+  relayd_http_filter_snippets: [],
   httpd_config_files: []
 })
-
-fqdn_hosts = {
-  "host" => node[:fqdn],
-  "v4" => node[:network_setup].v4.address,
-  "v6" => node[:network_setup].v6.address
-}
 
 directory "/etc/httpd.conf.d"
 
@@ -21,11 +16,6 @@ remote_file '/etc/httpd.conf.d/default.conf' do
   source 'files/httpd.default.conf'
   notifies :restart, 'service[httpd]'
 end
-template '/etc/httpd.conf.d/fqdn.conf' do
-  source 'templates/httpd/fqdn.conf.erb'
-  variables(fqdn_hosts: fqdn_hosts)
-  notifies :restart, 'service[httpd]'
-end
 
 template '/etc/httpd.conf' do
   source 'templates/httpd.conf.erb'
@@ -33,8 +23,8 @@ template '/etc/httpd.conf' do
 end
 
 directory '/etc/relayd.conf.d'
-remote_file '/etc/relayd.conf.d/http_headers.conf' do
-  source 'files/relayd.http_headers.conf'
+template '/etc/relayd.conf.d/http_headers.conf' do
+  source 'templates/relayd.http_headers.conf.erb'
   notifies :restart, 'service[relayd]'
 end
 template '/etc/relayd.conf' do
@@ -52,16 +42,6 @@ remote_file "/var/www/errdocs/err.html" do
   mode '0644'
   owner 'root'
   group 'daemon'
-end
-
-directory "/var/www/htdocs/fqdn"
-fqdn_hosts.each do |type, value|
-  directory "/var/www/htdocs/fqdn/#{type}"
-  template "/var/www/htdocs/fqdn/#{type}/index.html" do
-    source "templates/site.fqdn/hello.html.erb"
-    variables(hostname: value)
-    mode "0644"
-  end
 end
 
 service 'httpd' do

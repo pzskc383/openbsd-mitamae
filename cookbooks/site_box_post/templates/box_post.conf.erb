@@ -4,8 +4,8 @@ server "_box_boot_root" {
     alias "mail.b0x.pw"
     alias "my.mail.b0x.pw"
 
-    listen on $loopback port $redirect_port
-    listen on $loopback port $serve_port
+    listen on $loopback port $httpd_plain_port
+    listen on $loopback port $httpd_tls_port
 
     errdocs "/htdocs/box_main/err"
 

@@ -13,6 +13,12 @@ table vdomains file:/etc/mail/vdomains
 table vusers file:/etc/mail/vusers
 table passwd file:/etc/mail/passwd
 
+filter dkimsign_ed25519 proc-exec "filter-dkimsign \
+    -a ed25519-sha256 -D /etc/mail/vdomains \
+    -s e -k <%= node[:mail_dkim_key] %> \
+    user _dkimsign group _dkimsign
+
+
 listen on all port 25 tls pki fqdn \
     hostname $fqdn tag MTA
     

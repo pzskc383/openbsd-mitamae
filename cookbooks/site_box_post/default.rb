@@ -1,13 +1,16 @@
-node[:relayd_tls_certs] ||= []
-node[:relayd_tls_certs] << "post.b0x.pw"
+node[:relayd_http_filter_snippets].append <<~SNIPPET
+  pass request quick header "Host" value "post.b0x.pw"
+  pass request quick header "Host" value "p.b0x.pw"
+  pass request quick header "Host" value "my.post.b0x.pw"
+  pass request quick header "Host" value "mail.b0x.pw"
+  pass request quick header "Host" value "my.mail.b0x.pw"
+SNIPPET
 
-notify!("create@template[/etc/relayd.conf]")
-
-node[:httpd_config_files] << "box_post.conf"
 template "/etc/httpd.conf.d/box_post.conf" do
   source "templates/box_post.conf.erb"
   notifies :reload, 'service[httpd]'
 end
+node[:httpd_config_files] << "box_post.conf"
 
 directory "/var/www/htdocs/box_post"
 remote_file "/var/www/htdocs/box_post/root/index.html" do

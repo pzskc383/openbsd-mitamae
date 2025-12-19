@@ -24,15 +24,12 @@ directory dickd_builddir do
   not_if { has_dickd }
 end
 
-block_in_file "/etc/inetd.conf" do
-  marker_start "# 8==================================>"
-  marker_end   "# <==================================8"
-  content <<~EOCONF
-    telnet stream tcp  nowait nobody #{dickd_bin} erection
-    telnet stream tcp6 nowait nobody #{dickd_bin} erection
-  EOCONF
-
-  notifies :restart, "service[inetd]"
+include_recipe "../openbsd_server/defines.rb"
+inetd_conf_lines "erection" do
+  lines [
+    "telnet stream tcp  nowait nobody #{dickd_bin} erection",
+    "telnet stream tcp6 nowait nobody #{dickd_bin} erection"
+  ]
 end
 
 pf_open "telnet"

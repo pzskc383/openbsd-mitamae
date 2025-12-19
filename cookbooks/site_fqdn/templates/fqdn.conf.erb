@@ -2,9 +2,10 @@
 # server "<%= addr %>"
 server "_fqdn_<%= type %>" {
     alias "<%= addr %>"
-    listen on $loopback port $redirect_port
+    listen on $loopback port $httpd_plain_port
     <%- if type == "host" -%>
-    listen on $loopback port $serve_port
+    alias match "*"
+    listen on $loopback port $httpd_tls_port
     <%- end %>
 
     log {

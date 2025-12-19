@@ -1,13 +1,18 @@
-node[:relayd_tls_certs] ||= []
-node[:relayd_tls_certs] << "boot.my.b0x.pw"
+node[:relayd_http_filter_snippets].append <<~SNIPPET
+  match request header "Host" value "boot.my.b0x.pw" tag "box-boot"
+  match request header "Host" value "b.b0x.pw" tag "box-boot"
+  match request header "User-Agent" value "iPXE/*" tagged "box-boot" tag "box-boot-ipxe"
+  match request header "User-Agent" value "UefiHttpBoot/*" tagged "box-boot" tag "box-boot-uefi"
+  pass request tagged "box-boot-ipxe" header set "Host" value "ipxe.$HOST"
+  pass request tagged "box-boot-uefi" header set "Host" value "uefi.$HOST"
+  pass request tagged "box-boot"
+SNIPPET
 
-notify!("create@template[/etc/relayd.conf]")
-
-node[:httpd_config_files] << "box_boot.conf"
 template "/etc/httpd.conf.d/box_boot.conf" do
   source "templates/box_boot.conf.erb"
   notifies :reload, 'service[httpd]'
 end
+node[:httpd_config_files] << "box_boot.conf"
 
 BOOT_BOX_ROOT_FILES = %w[favicon.ico index.html robots.txt].freeze
 

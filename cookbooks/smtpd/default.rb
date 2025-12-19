@@ -108,22 +108,18 @@ if mail_role == "primary"
   end
 end
 
-# file "/etc/mail/aliases" do
-#   action :edit
-#   source "templates/aliases.erb"
-#   mode "0644"
-#   variables(
-#     admin_aliases:node[:mail_admin_aliases],
-#     admin_address:node[:global_admin_address] || mail_domains.values.first[:main_account]
-#   )
-#   notifies :run, "execute[newaliases]"
-# end
+lines_in_file "/etc/mail/aliases" do
+  lines [{
+    line: "root #{node[:root_mail_alias]}",
+    regexp: %r{^root\s.*}
+  }]
+  notifies :run, "execute[newaliases]"
+end
 
-## Rebuild aliases database
-# execute "newaliases" do
-#   action :nothing
-#   command "makemap -t aliases /etc/mail/aliases"
-# end
+execute "newaliases" do
+  action :nothing
+  command "makemap -t aliases /etc/mail/aliases"
+end
 
 execute "makemap vdomains" do
   action :nothing
@@ -141,9 +137,19 @@ execute "makemap passwd" do
 end
 
 package "opensmtpd-filter-dkimsign"
-# execute "generate DKIM key" do
+directory "/etc/mail/dkim"
 
-# end
+node[:mail_dkim_key] = "/etc/mail/dkim/private.ed25519.key"
+execute "generate DKIM key" do
+  command "openssl genpkey -algorithm ed25519 -outform PEM -out #{node[:mail_dkim_key]}"
+  not_if { ::File.exist?(node[:mail_dkim_key]) }
+end
+
+dkim_dns_rr_result = run_command(<<~EOCMD, error: false)
+  openssl pkey -outform DER -pubout -in #{node[:mail_dkim_key]} | \
+    tail -c +13 | openssl base64
+EOCMD
+node[:mail_dkim_dns_rr] = "v=DKIM1;k=ed25519;p=#{dkim_dns_rr_result.stdout.chomp}"
 
 template "/etc/mail/smtpd.conf" do
   source "templates/smtpd.conf.erb"

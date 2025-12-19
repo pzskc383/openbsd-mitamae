@@ -1,13 +1,12 @@
-node[:relayd_tls_certs] ||= []
-node[:relayd_tls_certs] << "b0x.pw"
+node[:relayd_http_filter_snippets].append <<~SNIPPET
+  pass request quick header "Host" value "b0x.pw"
+SNIPPET
 
-notify!("create@template[/etc/relayd.conf]")
-
-node[:httpd_config_files] << "box_main.conf"
 remote_file "/etc/httpd.conf.d/box_main.conf" do
   source "templates/box_main.conf.erb"
   notifies :reload, 'service[httpd]'
 end
+node[:httpd_config_files] << "box_main.conf"
 
 directory "/var/www/htdocs/box_main"
 %w[favicon.ico index.html robots.txt].each do |fname|
