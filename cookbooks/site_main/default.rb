@@ -1,6 +1,6 @@
 node[:relayd_http_filter_snippets].append <<~SNIPPET
-  pass request quick header "Host" value "pzskc383.dp.ua"
-  pass request quick header "Host" value "pzskc383.net"
+  pass request header "Host" value "pzskc383.dp.ua"
+  pass request header "Host" value "pzskc383.net"
 SNIPPET
 
 notify!("create@template[/etc/relayd.conf]")

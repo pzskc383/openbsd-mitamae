@@ -17,13 +17,13 @@ template '/etc/httpd.conf.d/fqdn.conf' do
   variables(fqdn_hosts: fqdn_hosts)
   notifies :restart, 'service[httpd]'
 end
-node[:httpd_config_files] << "fqdn.conf"
+node[:httpd_config_files].prepend "fqdn.conf"
 
 directory "/var/www/htdocs/fqdn"
 
 fqdn_hosts.each do |type, value|
   node[:relayd_http_filter_snippets].append <<~SNIPPET
-    pass request quick header "Host" value "#{value}"
+    pass request header "Host" value "#{value}"
   SNIPPET
 
   directory "/var/www/htdocs/fqdn/#{type}"

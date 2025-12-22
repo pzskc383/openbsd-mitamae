@@ -1,5 +1,5 @@
 node[:relayd_http_filter_snippets].append <<~SNIPPET
-  pass request quick header "Host" value "b0x.pw"
+  pass request header "Host" value "b0x.pw"
 SNIPPET
 
 remote_file "/etc/httpd.conf.d/box_main.conf" do

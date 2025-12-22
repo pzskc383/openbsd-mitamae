@@ -34,7 +34,7 @@ x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%- end -%>
 
 ; post+aliases
-<%- %w[post p my.post mail my.mail].each do |host| -%>
+<%- %w[post p my.post mail my.mail i.was.abused.by.the].each do |host| -%>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= host %> IN MX 10 the.main

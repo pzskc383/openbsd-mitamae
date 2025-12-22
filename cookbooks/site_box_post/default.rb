@@ -1,9 +1,9 @@
 node[:relayd_http_filter_snippets].append <<~SNIPPET
-  pass request quick header "Host" value "post.b0x.pw"
-  pass request quick header "Host" value "p.b0x.pw"
-  pass request quick header "Host" value "my.post.b0x.pw"
-  pass request quick header "Host" value "mail.b0x.pw"
-  pass request quick header "Host" value "my.mail.b0x.pw"
+  pass request header "Host" value "post.b0x.pw"
+  pass request header "Host" value "p.b0x.pw"
+  pass request header "Host" value "my.post.b0x.pw"
+  pass request header "Host" value "mail.b0x.pw"
+  pass request header "Host" value "my.mail.b0x.pw"
 SNIPPET
 
 template "/etc/httpd.conf.d/box_post.conf" do
@@ -13,7 +13,7 @@ end
 node[:httpd_config_files] << "box_post.conf"
 
 directory "/var/www/htdocs/box_post"
-remote_file "/var/www/htdocs/box_post/root/index.html" do
+remote_file "/var/www/htdocs/box_post/index.html" do
   source "files/index.html"
   mode '0644'
 end

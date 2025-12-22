@@ -1,3 +1,4 @@
+<%- if node[:mail_role] == 'primary' -%>
 # virtual user mappings
 <% @domains.each do |d, domain| -%>
 # domain-wide catchall forwarding for <%= d %>
@@ -24,3 +25,7 @@
 <%- @accounts.uniq.each do |acc| -%>
 <%= acc[:email] %> vmail
 <% end -%>
+
+<% end -%>
+# root mail
+root@<%= node[:fqdn] %> <%= node[:root_mail_alias] %>

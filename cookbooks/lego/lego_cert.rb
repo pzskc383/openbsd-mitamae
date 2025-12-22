@@ -1,4 +1,5 @@
 directory "/var/lego/scripts"
+node[:relayd_tls_certs] ||= []
 
 define :lego_cert, cert: nil do
   name = params[:name]
@@ -9,6 +10,8 @@ define :lego_cert, cert: nil do
     mode "0700"
     variables(cert: cert)
   end
-  node[:relayd_tls_certs] << name if ::File.exist?("/etc/ssl/#{name}.crt")
+
+  cert_path = "/etc/ssl/#{name}.crt"
+  node[:relayd_tls_certs] << name if ::File.exist?(cert_path)
   notify! "create@template[/etc/relayd.conf]"
 end
