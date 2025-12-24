@@ -18,31 +18,35 @@ filter dkimsign_ed25519 proc-exec "filter-dkimsign \
     -s e -k <%= node[:mail_dkim_key] %>" \
     user _dkimsign group _dkimsign
 
+listen on socket
 
-listen on all port 25 tls pki fqdn \
-    hostname $fqdn
+listen on egress port smtp \
+    tls pki fqdn hostname $fqdn
     
-listen on all port 587 filter "dkimsign_ed25519" \
-    tls-require pki fqdn hostname $fqdn auth <passwd> mask-src
+listen on egress port submission \
+    filter "dkimsign_ed25519" \
+    tls-require pki fqdn hostname $fqdn \
+    auth <passwd> received-auth mask-src
 
 action "deliver-lda" \
-    mda "/usr/local/libexec/dovecot/dovecot-lda -d %{dest} -r %{rcpt} -a %{rcpt:strip} -f %{mbox.from}" \
+    mda "/usr/local/libexec/dovecot/dovecot-lda \
+        -d %{dest} -r %{rcpt} -a %{rcpt:strip} -f %{mbox.from}" \
     virtual <vusers> user "vmail"
     
-action "deliver" lmtp "/var/dovecot/lmtp" rcpt-to virtual <vusers>
+action "deliver-lmtp" lmtp "/var/dovecot/lmtp" rcpt-to virtual <vusers>
 
 action "relay" relay helo $fqdn
 
-match from any for domain <vdomains> action "deliver"
+match from any for domain <vdomains> action "deliver-lda"
 match from any auth for any action "relay"
-match from local for local action "deliver"
-match from local for domain <vdomains> action "deliver"
+match from local for local action "deliver-lda"
+match from local for domain <vdomains> action "deliver-lda"
 match from local for any action "relay"
 <%- else -%>
 listen on egress port 25 tls pki fqdn \
     hostname $fqdn
 
-action "relay" relay helo $fqdn
+action "relay" relay helo $fqdn backup tls
 action "local" mbox
 
 match for local action "local" virtual <vusers>

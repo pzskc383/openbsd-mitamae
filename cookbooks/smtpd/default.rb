@@ -43,9 +43,6 @@ node[:mail_relay_domains] = relay_domains
 template "/etc/mail/mailname" do
   source "templates/mailname.erb"
   mode "0664"
-  variables(
-    fqdn: node[:fqdn]
-  )
   notifies :restart, "service[smtpd]"
 end
 
@@ -75,7 +72,7 @@ if mail_role == "primary"
   # end
   # mail_accounts.each do |acc|
   #   ldap_object "mail=#{acc[:email]},ou=accounts,dc=b0x,dc=pw"
-  #   servernode[:ldapd_server]
+  #   server node[:ldapd_server]
   #   attrs({
   #     objectClass: 'loginAccount',
   #     mail: acc[:email],
@@ -86,7 +83,7 @@ end
 
 template "/etc/mail/vdomains" do
   source "templates/vdomains.erb"
-  mode "0660"
+  mode "0664"
   group "_smtpd"
   variables(domains: (primary_domains + relay_domains))
   notifies :run, "execute[makemap vdomains]"
