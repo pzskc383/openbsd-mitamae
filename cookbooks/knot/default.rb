@@ -81,16 +81,17 @@ end
 
 KNOT_KEYTYPES = %w[KSK ZSK].freeze
 node[:knot_zones].filter { |z| z[:primary] == node[:hostname] }.each do |z|
-  now = Time.now
-  midnight = Time.new(now.year, now.month, now.day, 0, 0, 0)
-  day_part = ((now.to_i - midnight.to_i) * 99 / 86_400)
-  serial = format("%s%02d", "#{now.year}#{now.month}#{now.day}", day_part)
-
   zone = z[:name]
+  templatefile = "templates/zones/#{zone}.zone.erb"
   dnskey = node[:knot_dnssec].find { |d| d[:zone] == zone }
 
+  mtime = ::File.stat("cookbooks/knot/#{templatefile}").mtime
+  midnight = Time.new(mtime.year, mtime.month, mtime.day, 0, 0, 0)
+  day_part = ((mtime.to_i - midnight.to_i) * 99 / 86_400)
+  serial = format("%s%02d", "#{mtime.year}#{mtime.month}#{mtime.day}", day_part)
+
   template "#{zone}.zone" do
-    source "templates/zones/#{zone}.zone.erb"
+    source templatefile
     path "/var/db/knot/zones/#{zone}.zone"
 
     mode '0640'
