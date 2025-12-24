@@ -1,0 +1,25 @@
+wg_net:
+  incoming_port: 31694
+  network_v4: 10.196.0.
+  netmask_v4: 24
+  network_v6: "fd4c:a907:c0a5::"
+  netmask_v6: 112
+  peers:
+    ex1t:
+      address: 1
+      endpoint:
+        host: 88.99.194.126
+        port: 28955
+      pubkey: 0ws62BGNrgROi0WDJtNrDBBUDphHV1Q3aijHxOI06xI=
+    fuckup:
+      address: 8
+      pubkey: bj3pko0yHUA1/QDfUpq3N3euLcV48WeQqNTSqGqm1BA=
+    orange:
+      address: 10
+      pubkey: 0qy0/5H8IsSfxY7PNQBQ6MyJRAroBaSgCBsqpW5RiXM=
+    f0rk:
+      address: 32
+      pubkey: wmVb5rJsUYMb9D9RRZ9cUXLhg55JxHeLKgknXolN2hw=
+    airstrip3:
+      address: 33
+      pubkey: SNOdS4jaSVrAmaJbwNgSySiUCd6aA6EYPxcivE7jqyI=

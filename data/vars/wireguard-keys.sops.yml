@@ -1,0 +1,23 @@
+wg_net:
+  peers:
+    f0rk:
+      privkey: ENC[AES256_GCM,data:osXsMVWG6Or+FE93P2zv7tJbm5SBklT0D2J4HbldoDeANKKZ28ZGeVbgmGE=,iv:ngVsnC032JqcB0Ade6oT6ITPPUTPbSiV9FVfePCAy/0=,tag:MqqS2Ri0jlYs4NlrAH4Ntg==,type:str]
+    airstrip3:
+      privkey: ENC[AES256_GCM,data:hVpXFYG5MJ9hH5pSNr1/D85MFRJmIG3s+YId/KmZ3lo+XbboJXWhTrw7CjA=,iv:z7owgkZW8bCb844mlw0rPDRnkRXIYA48FJXBBFNSqEI=,tag:F6jF3XYfL52Be/NIVC3pOQ==,type:str]
+sops:
+  lastmodified: "2025-12-24T13:16:10Z"
+  mac: ENC[AES256_GCM,data:DYjSA4EknwnAPtvgoLL5g1GeJ+6aaDCjsMF5DTP6GgIxuoieuJJ7FEndRhBDBK1lqMlNl4/xrfZrWv7uqXp3b+rN4KzVSmPratIpMmbf+peXTLIXy6Hjb41zdhHXzGado1WVm6KZRAsU2wy7lpuxa43n7tbGrmSaRoxs2e8Dar8=,iv:5XmsmUSNyCQ7T0Y1AK/nMg61c0A9Xz9ryBbYqJcyotg=,tag:7Fy9c9FtGcbM1XlDM9R/9w==,type:str]
+  pgp:
+    - created_at: "2025-12-24T13:16:10Z"
+      enc: |-
+        -----BEGIN PGP MESSAGE-----
+
+        hF4DC2WX1rL6xpoSAQdAja5HCDOi9Co3PFDo4/xK7j4wuHizbdAyMyjjvYSc9ykw
+        bQ5JQGmZQSbmWOAg6louCUmzsy1/I3zqV69xUc4m/aHtQTnfRrfnNjevYHCQwhTW
+        0l4BZU9VI3GdaEeurqeD2HwO4Q69YVhsO7FZE7Kjh10yX+Ck0NX7vNiowKBzWzlO
+        O0DzSU2faCfp4IN5bPYdffai9Wqconnp4/iTrcvt/3+zNZNsVETuJOAkikn8h8Ji
+        =4g8A
+        -----END PGP MESSAGE-----
+      fp: 79F51922C72D82B81B2A20C234B4AFADB4E7D7A3
+  encrypted_regex: .+
+  version: 3.10.2
