@@ -19,6 +19,9 @@ the.main IN AAAA <%= node[:hosts].f0rk.v6 %>
 the.far IN A <%= node[:hosts].airstrip3.v4 %>
 the.far IN AAAA <%= node[:hosts].airstrip3.v6 %>
 
+the.main IN SSHFP 4 2 60fc27ce45f77ebd4f25261f5e1b31b329fc8dc7f5d8b190ed84aad8f88c1f94
+the.far IN SSHFP 4 2 f635ca62e1ec817a533094a92dcda52033ef6c7b2c9fcbc254779866c2b0dfe7
+
 ; internal hosts records
 <%- node[:hosts].each do |hostname, data| -%>
 s.<%= data.dns_shortname %> IN A <%= data.v4 %>
@@ -34,7 +37,7 @@ x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%- end -%>
 
 ; post+aliases
-<%- %w[post p my.post mail my.mail i.was.abused.by.the].each do |host| -%>
+<%- %w[post my.post mail my.mail i.was.abused.by.the].each do |host| -%>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= host %> IN MX 10 the.main
@@ -42,20 +45,31 @@ x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%= host %> IN TXT "v=spf1 mx -all"
 _dmarc.<%= host %> IN TXT "v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.b0x.pw; ruf=mailto:reports+dmarc.f@post.b0x.pw; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
 _smtp._tls.<%= host %> IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@post.b0x.pw"
+_imap._tcp.<%= host %> IN SRV 0 0 143 the.main
+_submission._tcp.<%= host %> IN SRV 0 0 465 the.main
+_pop3._tcp.<%= host %> IN SRV 0 0 0 .
 <%- if node[:mail_dkim_dns_rr] -%>
 e._domainkey.<%= host %> IN TXT "<%= node[:mail_dkim_dns_rr] %>"
 <%- end -%>
 <%- end -%>
 
 ; boot
-<%- %w[b boot.my xyz.boot.my].each do |host| -%>
+<%- %w[boot.my xyz.boot.my].each do |host| -%>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+ipxe.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
+ipxe.<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+uefi.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
+uefi.<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= host %> IN MX 0 .
 <%- end -%>
 <%- %w[bsd alpine fedora].each do |os| -%>
 boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
 boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+ipxe.boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
+ipxe.boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+uefi.boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
+uefi.boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 boot.<%= os %>.on.my IN MX 0 .
 <%- end -%>
 

@@ -21,6 +21,14 @@ $TTL 30m
 <%= hostname %> IN CNAME <%= data.dns_shortname %>
 <% end %>
 
+f0 IN SSHFP 4 2 60fc27ce45f77ebd4f25261f5e1b31b329fc8dc7f5d8b190ed84aad8f88c1f94
+a3 IN SSHFP 4 2 f635ca62e1ec817a533094a92dcda52033ef6c7b2c9fcbc254779866c2b0dfe7
+
+<%- %w[ex1t x1].each do |name| -%>
+<%= name %> IN A <%= node[:ex1t].v4 %>
+<%= name %> IN AAAA <%= node[:ex1t].v6 %>
+<%- end -%>
+
 _dmarc IN TXT "v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@pzskc383.net; ruf=mailto:reports+dmarc.f@pzskc383.net; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
 _smtp._tls IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@pzskc383.net"
 <%- if node[:mail_dkim_dns_rr] -%>
@@ -29,6 +37,8 @@ e._domainkey IN TXT "<%= node[:mail_dkim_dns_rr] %>"
 
 _submission._tcp   IN SRV 0 0 587  f0
 _imap._tcp         IN SRV 0 0 143  f0
+_pop3._tcp         IN SRV 0 0 0 .
+
 _xmpp-client._tcp  IN SRV 0 0 5222 f0
 _xmpp-server._tcp  IN SRV 0 0 5269 f0
 _xmpps-client._tcp IN SRV 0 0 5223 f0
