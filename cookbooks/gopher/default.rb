@@ -1,14 +1,18 @@
-openbsd_package "gophernicus"
+openbsd_package "geomyidae"
 
-include_recipe "../openbsd_server/defines.rb"
-inetd_conf_lines "gophernicus" do
-  lines [<<~LINE]
-    gopher stream tcp nowait _gophernicus /usr/local/libexec/in.gophernicus in.gophernicus -h hole.pzskc383.dp.ua -l /var/log/gopher.log -nv -nm -nu -nx -nf
-  LINE
+service "geomyidae" do
+  action :enable
 end
 
-remote_file '/var/gopher/index.gophermap' do
-  source "files/index.gophermap"
+geomyidae_flags = "-c -e -n -l /var/log/geomyidae.log -u _geomyidae -g _geomyidae"
+execute "set geomyidae flags" do
+  command "rcctl set geomyidae flags #{geomyidae_flags}"
+  not_if "grep -qF 'geomyidae_flags=#{geomyidae_flags}' /etc/rc.conf.local"
+  notifies :start, "service[geomyidae]"
+end
+
+remote_file '/var/gopher/index.gph' do
+  source "files/index.gph"
   mode "0644"
 end
 

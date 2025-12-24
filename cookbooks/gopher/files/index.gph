@@ -8,23 +8,21 @@
                                                "--"
 
 some stuff on this host:
-hMy git repos (still on http)	URL:https://pzskc383.dp.ua/code/
-8Penis over telnet	guest	penis.pzskc383.dp.ua	23
-
+[h|My git repos (still on http)|URL:https://pzskc383.net/code/|server|port]
+[8|Penis over telnet|null|pzskc383.net|23]
  ...
 
 more to come
 
-
-                                     _     OS: OpenBSD 7.8 arm64
-                                    (_)    Host: KVM Server (VPS 1000 ARM G11)
-              |    .                       Kernel: OpenBSD 7.8
-          .   |L  /|   .          _        Init System: init
-      _ . |\ _| \--+._/| .       (_)       Packages: 69 (pkg)
-     / ||\| Y J  )   / |/| ./              Shell: ksh 5.2.14
-    J  |)'( |        ` F`.'/        _      CPU: ARM Neoverse N1 r3p1 (6)
-  -<|  F         __     .-<        (_)     GPU: RedHat Virtio 1.0 GPU
-    | /       .-'. `.  /-. L___            Public IP: 152.53.60.123
+                                     _     root@f0rk
+                                    (_)    ---------
+              |    .                       OS: OpenBSD 7.8 arm64
+          .   |L  /|   .          _        Host: KVM Server (VPS 1000 ARM G11)
+      _ . |\ _| \--+._/| .       (_)       Kernel: OpenBSD 7.8
+     / ||\| Y J  )   / |/| ./              CPU: ARM Neoverse N1 r3p1 (6)
+    J  |)'( |        ` F`.'/        _      GPU: RedHat Virtio 1.0 GPU
+  -<|  F         __     .-<        (_)     Memory: 774.16 MiB / 7.71 GiB (10%)
+    | /       .-'. `.  /-. L___
     J \      <    \  | | O\|.-'  _
   _J \  .-    \/ O | | \  |F    (_)
  '-F  -<_.     \   .-'  `-' L__
@@ -39,6 +37,3 @@ __J  _   _.     >-'  )._.   |-'
       / .-.\
       \ (  `\
        `.\
-
-
-
