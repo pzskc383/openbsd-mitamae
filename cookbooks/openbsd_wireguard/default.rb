@@ -1,18 +1,28 @@
-roaming_peers = {}
-net_peers = {}
-me = nil
+peers = {
+  roam: {},
+  net: {},
+  me: nil
+}
+
 node[:wg_net][:peers].each do |peer_name, peer|
   if peer_name == node[:hostname]
-    me = peer
+    peers[:me] = peer
   elsif node[:hosts][peer_name]
-    net_peers[peer_name] = peer.dup.merge!({ endpoint: {
-      host: node[:hosts][peer_name][:v4],
-      port: node[:wg_net][:incoming_port]
-    } })
+    peers[:net][peer_name] = peer.dup.merge!({
+      endpoint: {
+        host: node[:hosts][peer_name][:v4],
+        port: node[:wg_net][:incoming_port]
+      },
+      netmask_v4: 32,
+      netmask_v6: 128
+    })
   elsif peer[:endpoint]
-    net_peers[peer_name] = peer
+    peers[:net][peer_name] = peer.dup.merge!({
+      netmask_v4: 24,
+      netmask_v6: 112
+    })
   else
-    roaming_peers[peer_name] = peer
+    peers[:roam][peer_name] = peer
   end
 end
 
@@ -20,9 +30,7 @@ template "/etc/hostname.wg0" do
   source "templates/hostname.wg0.erb"
   mode "0640"
   variables(
-    me: me,
-    roaming_peers: roaming_peers,
-    net_peers: net_peers
+    peers: peers
   )
   notifies :run, "execute[netstart wg0]"
 end

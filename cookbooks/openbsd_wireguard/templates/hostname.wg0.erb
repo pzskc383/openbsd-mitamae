@@ -1,8 +1,8 @@
-wgport <%= node[:wg_net][:incoming_port] %>
-wgkey <%= @me[:privkey] %>
-<%- @net_peers.each do |peer_name, peer| -%>
-wgpeer <%= peer[:pubkey] %> wgendpoint <%= peer[:endpoint][:host] %> <%= peer[:endpoint][:port] %> wgaip <%= node[:wg_net][:network_v4] %><%= peer[:address].to_s(10) %>/<%= node[:wg_net][:netmask_v4] %> wgaip <%= node[:wg_net][:network_v6] %><%= peer[:address].to_s(16) %>/<%= node[:wg_net][:netmask_v6] %> wgdescr "<%= peer_name %>"
+wgport <%= node[:wg_net][:default_incoming_port] %>
+wgkey <%= @peers[:me][:privkey] %>
+<%- @peers[:net].each do |peer_name, peer| -%>
+wgpeer <%= peer[:pubkey] %> wgendpoint <%= peer[:endpoint][:host] %> <%= peer[:endpoint][:port] %> wgaip <%= node[:wg_net][:network_v4] %><%= peer[:address].to_s(10) %>/<%= peer[:netmask_v4] %> wgaip <%= node[:wg_net][:network_v6] %><%= peer[:address].to_s(16) %>/<%= peer[:netmask_v6] %> wgdescr "<%= peer_name %>"
 <%- end -%>
-<%- @roaming_peers.each do |peer_name, peer| -%>
+<%- @peers[:roam].each do |peer_name, peer| -%>
 wgpeer <%= peer[:pubkey] %> wgaip <%= node[:wg_net][:network_v4] %><%= peer[:address].to_s(10) %>/32 wgaip <%= node[:wg_net][:network_v6] %><%= peer[:address].to_s(16) %>/128 wgdescr "<%= peer_name %>"
 <%- end -%>

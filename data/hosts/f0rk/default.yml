@@ -1,6 +1,7 @@
 properties:
   run_list:
     - cookbooks/openbsd_server/default.rb
+    - cookbooks/openbsd_wireguard/default.rb
     - cookbooks/pf/default.rb
     - cookbooks/openbsd_admin/default.rb
     - cookbooks/knot/default.rb
