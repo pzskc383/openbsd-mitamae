@@ -28,10 +28,9 @@ include_recipe "lego_cert.rb"
 node[:lego_certs].each do |cert|
   lego_cert cert[:name] do
     cert cert
+    notifies :create, "template[/etc/relayd.conf]"
   end
 end
-
-notify! "create@template[/etc/relayd.conf]"
 
 cron "lego certificate renewal" do
   hour '~'

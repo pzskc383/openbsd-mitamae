@@ -4,6 +4,7 @@ lego_cert "fqdn" do
     admin_email: 'owner@post.b0x.pw',
     domains: [node[:fqdn]]
   )
+  notifies :create, "template[/etc/relayd.conf]"
 end
 
 fqdn_hosts = {

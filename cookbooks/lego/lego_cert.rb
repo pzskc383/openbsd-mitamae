@@ -13,5 +13,4 @@ define :lego_cert, cert: nil do
 
   cert_path = "/etc/ssl/#{name}.crt"
   node[:relayd_tls_certs] << name if ::File.exist?(cert_path)
-  notify! "create@template[/etc/relayd.conf]"
 end
