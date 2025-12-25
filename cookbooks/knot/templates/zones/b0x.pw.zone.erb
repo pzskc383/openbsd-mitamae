@@ -96,11 +96,22 @@ uefi.boot.<%= os %>.on.my IN TXT "v=spf1 -all"
 uefi.boot.<%= os %>.on.my IN MX 0 .
 <%- end -%>
 
-; talk
-talk IN A <%= node[:hosts][:f0rk][:v4] %>
-talk IN AAAA <%= node[:hosts][:f0rk][:v6] %>
-talk IN MX 0 .
+; talk server and components
+<%- %w[talk chat.talk share.talk turn.talk].each do |domain| -%>
+<%= domain %> IN A <%= node[:hosts][:f0rk][:v4] %>
+<%= domain %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+<%= domain %> IN MX 0 .
+<%= domain %> IN TXT "v=spf1 -all"
+<%- end -%>
+; talk srv
 _xmpp-client._tcp.talk  IN SRV 0 0 5222 talk
 _xmpp-server._tcp.talk  IN SRV 0 0 5269 talk
 _xmpps-client._tcp.talk IN SRV 0 0 5223 talk
 _xmpps-server._tcp.talk IN SRV 0 0 5270 talk
+_stun._udp              IN SRV 0 0 3478 turn.talk
+_stun._tcp              IN SRV 0 0 3478 turn.talk
+_stuns._udp             IN SRV 0 0 3478 turn.talk
+_xmpp-server._tcp.chat.talk    IN SRV 0 0 5269 chat.talk
+_xmpps-server._tcp.chat.talk   IN SRV 0 0 5270 chat.talk
+_xmpp-server._tcp.share.talk   IN SRV 0 0 5269 share.talk
+_xmpps-server._tcp.share.talk  IN SRV 0 0 5270 chat.talk

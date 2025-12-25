@@ -1,0 +1,22 @@
+listening-port=3478
+tls-listening-port=5349
+alt-listening-port=0
+listening-ip=<%= node[:network_setup][:v4][:address] %>
+listening-ip=<%= node[:network_setup][:v6][:address] %>
+min-port=63478
+max-port=63878
+
+
+use-auth-secret
+static-auth-secret=<%= node[:prosody_turn_secret] %>
+realm=turn.talk.b0x.pw
+
+cert=/etc/ssl/talk_box.crt
+pkey=/etc/ssl/private/talk_box.key
+
+verbose
+syslog
+
+no-rfc5780
+no-stun-backward-compatibility
+response-origin-only-with-rfc5780

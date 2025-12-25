@@ -1,0 +1,21 @@
+server "_box_talk" {
+    alias "talk.b0x.pw"
+    alias "share.talk.b0x.pw"
+    alias "chat.talk.b0x.pw"
+    alias "turn.talk.b0x.pw"
+
+    listen on $loopback port $httpd_plain_port
+    listen on $loopback port $httpd_tls_port
+
+    errdocs "/htdocs/box_main/err"
+
+    log {
+        style forwarded
+        access "access.box_talk.log"
+        error "error.box_talk.log"
+    }
+
+    location * {
+        root "/htdocs/box_talk"
+    }
+}

@@ -14,6 +14,7 @@ properties:
     - cookbooks/site_main/default.rb
     - cookbooks/site_box_main/default.rb
     - cookbooks/site_box_post/default.rb
+    - cookbooks/site_box_talk/default.rb
     - cookbooks/site_box_boot/default.rb
     - cookbooks/gopher/default.rb
     - cookbooks/prosody/default.rb

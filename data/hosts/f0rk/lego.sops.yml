@@ -51,10 +51,13 @@ properties:
               admin_email: ENC[AES256_GCM,data:0VkD1NjrlVL5+jNmHVdqsdY=,iv:4eE7A91A/xRpEEFifMel/HXe4rJRISh7MpQf8BTYFb0=,tag:YA43U5s0B0DYBbgvV0ninQ==,type:str]
               domains:
                 - ENC[AES256_GCM,data:UsylavPWDXUfAo4=,iv:shchybY3+5TRFDIRB1NwGkzBjDWShKT4mJBN9Pzl7Fs=,tag:k+HZWaj1G21Wou1PGPWPug==,type:str]
+                - ENC[AES256_GCM,data:2kY2nnEGfIRD8wkftWv3rw==,iv:msVgrDzq7ROVFlV/4Z+FSrwbURYy9HU22qYdshcm0TQ=,tag:xCbUqS+grbG6F7GZzkLBvg==,type:str]
+                - ENC[AES256_GCM,data:si74aoQ8hWCEDI8x3kwfYI4=,iv:uz+rgM5cvvtA7+7nfHOrPBiIaadUo8IGp3PmCeKfDfw=,tag:dD03/Crck4dKecWIKnTNCg==,type:str]
+                - ENC[AES256_GCM,data:mPaMnbanE1NZVqbL36OZgg==,iv:WowHJGxmEs0kZAQaMK1gVw2e7rrT8zc8wLtvJWcjxX8=,tag:iQJtoWiShEsw1EERdg41qw==,type:str]
               zone: ENC[AES256_GCM,data:FNM+AU62,iv:7wAh8rrgKUubQGypqgc+ZF45Uy6ba0GjwRCauVFpF80=,tag:MIE5Mfb23Ai4dZtrmKanig==,type:str]
 sops:
-    lastmodified: "2025-12-24T23:25:07Z"
-    mac: ENC[AES256_GCM,data:nVCOwMqaSWeK53DuaKDEITgJEp8yGxbxhjrMWs+ZeO9tJriQ2AB4K4YQ/Rp6FawpRfBDuxI3kRsUPjquI3NAWD/yZMVtYMj6r7/lJZWyNrcypPO3Cbec+BpVaFCkGey2AHPZZoQ9Cxd2G1R6BQbZ21HIvAZiihANPXIaDfZPgLk=,iv:2e5kR2rT/SGpJqURDKf65Kw8ptacmJQUUKc2MBanId0=,tag:JbZ6aoS2+feU3XGFKuoJ2g==,type:str]
+    lastmodified: "2025-12-25T06:50:09Z"
+    mac: ENC[AES256_GCM,data:+URrY21gQq9o/eybleTj/Fo4bt/Nhdv8u5fPR2UMoS0myWEU/KnDtYqBeZITUUEkyKAEORXKRNXHCq0Uw97sGRmovmbjb4n4E0A4ERq1vah1+fA6Y7Hh9IDjSjjXHUjwTFn2Cgjgq5PafUrliUBYjHdKnG/omlcu16B/TaAx2Fw=,iv:tfXA3ip/lvjt8SltJpNtau5aEevzTyoBt7lJgRyWLhs=,tag:+9KvB2NYN42RWZRGbzvncQ==,type:str]
     pgp:
         - created_at: "2025-12-16T22:33:00Z"
           enc: |-

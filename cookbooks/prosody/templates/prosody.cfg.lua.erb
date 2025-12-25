@@ -10,6 +10,7 @@ modules_enabled = {
 		"roster";
 		"saslauth";
 		"tls";
+		--
 		"blocklist";
 		"bookmarks";
 		"carbons";
@@ -20,6 +21,7 @@ modules_enabled = {
 		"smacks";
 		"vcard4";
 		"vcard_legacy";
+		--
 		"account_activity";
 		"cloud_notify";
 		"csi_simple";
@@ -33,10 +35,12 @@ modules_enabled = {
 		"version";
 		"mam";
 		"turn_external";
+		--
 		"admin_adhoc";
 		"admin_shell";
 		"bosh";
 		"websocket";
+		--
 		"announce";
 		"groups";
 		"mimicking";
@@ -61,8 +65,10 @@ limits = {
 authentication = "internal_hashed"
 archive_expires_after = "1y"
 
-turn_external_host = "talk.b0x.pw"
+turn_external_host = "turn.talk.b0x.pw"
 turn_external_secret = "<%= node[:prosody_turn_secret] %>"
+turn_external_tcp = true
+turn_external_tls_port = 5349
 
 log = {
 	info = "/var/prosody/prosody.log";
@@ -75,6 +81,8 @@ http_ports = { 5280 }
 http_interfaces = { "127.0.0.1", "::1" }
 https_ports = { 5281 }
 https_interfaces = { "*", "::" }
+c2s_direct_tls_ports = { 5223 }
+s2s_direct_tls_ports = { 5270 }
 
 VirtualHost "talk.b0x.pw"
   ssl = {
