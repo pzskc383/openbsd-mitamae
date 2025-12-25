@@ -36,10 +36,10 @@ hocho apply airstrip3
 ### Development
 ```bash
 # Lint Ruby code
-bundle exec standardrb
+bundle exec rubocop
 
 # Fix linting issues automatically
-bundle exec standardrb --fix
+bundle exec rubocop -a
 ```
 
 ## Architecture
