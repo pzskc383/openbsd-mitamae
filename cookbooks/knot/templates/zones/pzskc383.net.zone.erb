@@ -24,6 +24,9 @@ $TTL 30m
 f0 IN SSHFP 4 2 60fc27ce45f77ebd4f25261f5e1b31b329fc8dc7f5d8b190ed84aad8f88c1f94
 a3 IN SSHFP 4 2 f635ca62e1ec817a533094a92dcda52033ef6c7b2c9fcbc254779866c2b0dfe7
 
+f0 IN LOC 48 12 29.4 N 16 22 25.8 E 0.0m 10.0m 1000m 10m
+a3 IN LOC 51 30 26.5 N  0  7 39.9 W 0.0m 10.0m 1000m 10m
+
 <%- %w[ex1t x1].each do |name| -%>
 <%= name %> IN A <%= node[:ex1t].v4 %>
 <%= name %> IN AAAA <%= node[:ex1t].v6 %>
