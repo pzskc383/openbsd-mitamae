@@ -52,7 +52,7 @@ end
 
 include_recipe "../openbsd_server/defines.rb"
 inetd_conf_lines "gitdaemon" do
-  lines "git stream tcp nowait nobody /usr/bin/git git daemon --inetd --verbose #{git_root}"
+  lines ["git stream tcp nowait nobody /usr/bin/git git daemon --inetd --verbose #{git_root}"]
 end
 
 include_recipe "../pf/defines.rb"

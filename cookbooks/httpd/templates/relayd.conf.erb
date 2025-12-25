@@ -33,9 +33,9 @@ relay ipv6_www {
 http protocol http_tls {
     tcp { sack, backlog 512 }
     tls edh params auto
-    tls no tlsv1.0
-    tls session tickets
-    tls ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+    # tls no tlsv1.0
+    # tls session tickets
+    # tls ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
 <%- node[:relayd_tls_certs].each do |cert| -%>
     tls { keypair <%= cert %> }
 <%- end -%>

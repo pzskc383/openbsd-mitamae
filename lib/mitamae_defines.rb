@@ -16,7 +16,7 @@ define :block_in_file, content: nil, marker_start: nil, marker_end: nil do
 end
 
 define :lines_in_file, lines: [] do # rubocop:disable Metrics/BlockLength
-  commands = lines.map do |line|
+  commands = params[:lines].map do |line|
     command =
       case line
       when ::Hashie::Mash
