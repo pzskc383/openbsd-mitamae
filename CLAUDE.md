@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a mitamae configuration for managing OpenBSD servers. Mitamae is an mruby-based configuration management tool (mini-Chef) that manages OpenBSD VPS instances for DNS, mail, and web services.
 
 **Key servers:**
-- **airstrip3** (a3): Primary server (DNS, mail, certificates, web)
-- **f0rk** (f0): Secondary server (DNS only)
+- **f0rk** (f0): Primary server (DNS, mail, certificates, web, XMPP, gopher)
+- **airstrip3** (a3): Secondary server (DNS, mail)
 
 ## Common Commands
 
@@ -42,6 +42,26 @@ bundle exec rubocop
 bundle exec rubocop -a
 ```
 
+### WireGuard VPN
+
+Configured in `cookbooks/openbsd_wireguard/` for server-to-server and client VPN connectivity.
+
+**Configuration:**
+- Interface: wg0
+- Config: `data/vars/wireguard.yml`, `data/vars/wireguard-keys.sops.yml`
+- Supports roaming peers, home network peers, local peers
+
+### Prosody XMPP
+
+Configured in `cookbooks/prosody/` for XMPP/Jabber instant messaging.
+
+**Components:**
+- Prosody XMPP server
+- coturn (turnserver) - TURN server for NAT traversal
+- Config: `data/vars/prosody.sops.yml`
+
+**Note:** restund is broken on ARM64 and not currently used.
+
 ## Architecture
 
 ### Mitamae vs Chef
@@ -72,23 +92,30 @@ While mitamae looks like Chef, **it is NOT Chef**. Refer to `misc/mitamae/mrblib
 │       ├── default.yml            # Base configuration
 │       ├── secrets.sops.yml       # Encrypted global secrets
 │       ├── knot.yml               # DNS configuration
-│       ├── lego.yml               # ACME/Let's Encrypt configuration
-│       └── mail.yml               # Mail server configuration
+│       ├── mail.yml               # Mail server configuration
+│       ├── prosody.sops.yml       # Encrypted Prosody XMPP secrets
+│       ├── wireguard.yml          # WireGuard configuration
+│       └── wireguard-keys.sops.yml # Encrypted WireGuard keys
 ├── cookbooks/                     # Mitamae recipes
 │   ├── openbsd_server/            # Main server config (vim, network, etc)
 │   ├── openbsd_admin/             # Admin tools (git, zsh, doas, tmux)
 │   ├── openbsd_com0/              # Serial console configuration
+│   ├── openbsd_wireguard/         # WireGuard VPN configuration
 │   ├── pf/                        # Packet filter (firewall) configuration
 │   ├── knot/                      # Knot DNS server
+│   ├── lego/                      # Unified ACME cert management
 │   ├── dickd/                     # Custom dickd service
 │   ├── dovecot/                   # Dovecot IMAP server
 │   ├── httpd/                     # OpenBSD httpd web server
 │   ├── ldap/                      # LDAP server configuration
-│   ├── lego_domains/              # ACME cert management (domains)
-│   ├── lego_fqdn/                 # ACME cert management (FQDNs)
-│   ├── rspamd/                    # Rspamd spam filter
+│   ├── smtpd/                     # OpenSMTPD mail server
+│   ├── prosody/                   # Prosody XMPP server
+│   ├── gopher/                    # Gopher protocol server
 │   ├── site_main/                 # Main website configuration
-│   └── smtpd/                     # OpenSMTPD mail server
+│   ├── site_box_boot/             # iPXE/UEFI HTTP Boot hosting
+│   ├── site_box_main/             # Main b0x.pw site
+│   ├── site_box_post/             # Mail/postal services site
+│   └── site_fqdn/                 # FQDN-based virtual hosting
 ├── plugins/                       # Custom mitamae plugins
 │   ├── mitamae-plugin-resource-openbsd_package/
 │   ├── mitamae-plugin-resource-cron/  # Git submodule
@@ -105,13 +132,51 @@ While mitamae looks like Chef, **it is NOT Chef**. Refer to `misc/mitamae/mrblib
 │   ├── helpers.rb                 # Deployment helpers
 │   └── recipes/                   # Per-host deployment recipes
 ├── dist/                          # Pre-compiled mitamae binaries
-│   ├── mitamae-arm64-openbsd
-│   └── mitamae-x86_64-openbsd
+│   ├── mitamae-arm64-linux        # Linux ARM64
+│   ├── mitamae-x86_64-linux       # Linux x86_64
+│   ├── mitamae-arm64-openbsd      # OpenBSD ARM64
+│   ├── mitamae-x86_64-openbsd     # OpenBSD x86_64
+│   └── mitamae-x86_64-openbsd.old # Backup
 └── misc/                          # Reference materials (git submodules)
     ├── mitamae/                   # Mitamae source
     ├── sorah-cnw/                 # Example configs
     └── example-ruby-*/            # Ruby infra examples
 ```
+
+### Cookbook Overview
+
+**Core Infrastructure:**
+- **openbsd_server** - Base config (vim, DNS, network, sysctl) + shared defines.rb (sysctl, newsyslog_snippet, notify!)
+- **openbsd_admin** - Admin tools (git, zsh, doas, SSH hardening)
+- **openbsd_com0** - Serial console configuration
+- **pf** - Packet filter firewall + pf_open define
+
+**DNS & Certificates:**
+- **knot** - Knot DNS with DNSSEC
+- **lego** - Unified ACME cert management (lego_cert resource, cert_group.rb)
+
+**Mail:**
+- **smtpd** - OpenSMTPD with DKIM
+- **dovecot** - IMAP/LMTP with sieve
+
+**Web:**
+- **httpd** - OpenBSD httpd + relayd (TLS termination)
+- **site_main** - Primary website (cgit, gotwebd)
+- **site_box_boot** - iPXE/UEFI HTTP Boot hosting
+- **site_box_main** - Main b0x.pw site
+- **site_box_post** - Mail/postal services site
+- **site_fqdn** - Per-host dynamic configuration
+
+**Communication:**
+- **prosody** - XMPP/Jabber server (includes coturn.rb sub-recipe)
+
+**Networking:**
+- **openbsd_wireguard** - WireGuard VPN
+
+**Other:**
+- **ldap** - OpenLDAP directory
+- **gopher** - Gopher server (geomyidae)
+- **dickd** - Custom telnet daemon
 
 ### Hocho Integration
 
@@ -121,24 +186,26 @@ Key files:
 - `hocho.yml`: Defines inventory providers, property providers, and driver options
 - `data/hosts/*/default.yml`: Host properties and run_list
 - `data/hosts/*/secrets.sops.yml`: SOPS-encrypted host-specific secrets (SSH credentials, network config)
-- `data/vars/*.yml`: Global variables split by domain (default, knot, lego, mail)
+- `data/vars/*.yml`: Global variables split by domain (default, knot, mail, wireguard, prosody)
 - `data/vars/secrets.sops.yml`: Encrypted global secrets
 
 Custom extensions in `lib/`:
 - **`mitamae_ext.rb`**: Removes sudo/doas command wrapping (since we connect as root directly)
   - Overrides `build_command` to skip user switching
   - Connects node object to backend for custom resource access
-- **`mitamae_defines.rb`**: Custom resource definitions (block_in_file, line_in_file, notify!)
-- **`hocho_ext.rb`**: Patches hocho for OpenBSD compatibility
+- **`mitamae_defines.rb`**: Custom resource definitions (block_in_file, lines_in_file, notify!)
+- **`hocho_ext.rb`**: Patches hocho for OpenBSD compatibility (loaded via `bin/hocho:28` binstub)
   - Uses `sh` instead of `bash`
-  - Implements password-based privilege escalation via openssl/askpass (currently unused as `sudo_required: false`)
+  - Customizes rsync sync (only cookbooks, lib, plugins directories)
 - **`yaml_dir.rb`**: Custom inventory provider that loads hosts from YAML directory structure
 
 Configuration flow:
-1. Hocho reads `hocho.yml` configuration
-2. Loads host inventory via `yaml_dir` provider from `data/hosts/*/`
-3. Applies property providers to set defaults (`sudo_required: false`, `ssh_options.user: root`)
-4. Executes mitamae driver, connecting as root directly (no sudo/doas needed)
+1. `bin/hocho` binstub loads `hocho_ext.rb` (OpenBSD patches)
+2. Hocho reads `hocho.yml` configuration
+3. `hocho.yml` initializers load `mitamae_ext.rb` and `mitamae_defines.rb`
+4. Loads host inventory via `yaml_dir` provider from `data/hosts/*/`
+5. Applies property providers to set defaults (`sudo_required: false`, `ssh_options.user: root`)
+6. Executes mitamae driver, connecting as root directly (no sudo/doas needed)
 
 ### Custom Plugins
 
