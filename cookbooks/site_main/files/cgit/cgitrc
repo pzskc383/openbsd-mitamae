@@ -32,10 +32,8 @@ head-include=/conf/cgit-head.inc.html
 root-title=pzskc383 project storage
 root-desc=if you dont like something, it probably was even worse before you noticed.
 
-clone-url=https://$HTTP_HOST$SCRIPT_NAME/$CGIT_REPO_URL
+clone-url=https://$HTTP_HOST$SCRIPT_NAME/$CGIT_REPO_URL ssh://git@$HTTP_HOST:$CGIT_REPO_URL git://$HTTP_HOST/$CGIT_REPO_URL
 scan-path=/repos
-
-source-filter=/bin/chroma --html
 
 readme=:Readme
 readme=:README

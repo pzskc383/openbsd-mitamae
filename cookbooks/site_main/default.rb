@@ -13,31 +13,9 @@ end
 node[:httpd_config_files] << "main_pzskc383.conf"
 notify!("create@template[/etc/httpd.conf]")
 
-package "cgit"
-service("slowcgi") { action %i[enable start] }
-
-%w[cgitrc cgit-head.inc.html].each do |fn|
-  remote_file "/var/www/conf/#{fn}" do
-    source "files/cgit/#{fn}"
-    mode '0444'
-    owner 'www'
-    group 'www'
-  end
-end
-
-package "gotwebd"
-remote_file "/etc/gotwebd.conf" do
-  source "files/gotweb/gotwebd.conf"
-  notifies :restart, "service[gotwebd]"
-end
-remote_file "/var/www/htdocs/gotwebd/mono-gotweb.css" do
-  source "files/gotweb/mono-gotweb.css"
-  mode "0644"
-end
-link "/var/www/htdocs/gotwebd/logo.png" do
-  to "/htdocs/pzskc383/images/serve.png"
-end
-service("gotwebd") { %i[enable start] }
+include_recipe "git.rb"
+include_recipe "cgit.rb"
+include_recipe "gotweb.rb"
 
 directory "/var/www/htdocs/pzskc383"
 

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo "Available commands:"
+echo "list-repos"
+echo "create-repo <repo-name> [repo-description] [repo-category]"
+echo "destroy-repo <repo-name>"
+echo "help"

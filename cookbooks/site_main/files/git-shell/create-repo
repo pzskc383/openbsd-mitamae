@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -eu
+
+name="$1"
+description="${2-}"
+category="${3-misc}"
+
+if ! [ "${name}" ]; then
+  echo "you should provide name of repository"
+  exit 1
+fi
+
+repo_dir="${name}.git"
+repo_config="${repo_dir}/config"
+
+git init --bare --template="${PWD}/.template" "${repo_dir}"
+
+git config set -f "${repo_config}" gitweb.description "${description}"
+git config set -f "${repo_config}" gitweb.category "${category}"

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -eu
+
+_err() {
+  echo "$*"
+  exit 1
+}
+
+( 
+	cd /var/www/repos || _err "git root doesn't exist!"
+	
+	for d in *.git; do
+		name="${d%/}"
+		category="$(git config get -f "${d}"/config gitweb.category 2>/dev/null)"
+		description="$(git config get -f "${d}"/config gitweb.description 2>/dev/null)"
+
+		printf "%s%%%s%%%s\n" "$name" "$category" "$description" |column -t -s%
+	done
+)
