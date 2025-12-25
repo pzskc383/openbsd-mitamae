@@ -38,4 +38,3 @@ end.join
 newsyslog_snippet "http_site_main" do
   content snippet
 end
-notify!("create@template[/etc/newsyslog.conf]")

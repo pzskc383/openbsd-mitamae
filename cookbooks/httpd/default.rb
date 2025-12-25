@@ -68,4 +68,3 @@ newsyslog_snippet "http_default" do
     /var/www/logs/error.fqdn.log                    644  7     250  *     Z "rcctl reload httpd"
   LOGS
 end
-notify!("create@template[/etc/newsyslog.conf]")

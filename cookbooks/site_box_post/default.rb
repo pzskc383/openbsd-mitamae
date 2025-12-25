@@ -30,4 +30,3 @@ newsyslog_snippet "http_site_post" do
     /var/www/logs/error.box_post.log                 644  7     250  *     Z "rcctl reload httpd"
   EXTRA
 end
-notify!("create@template[/etc/newsyslog.conf]")
