@@ -1,15 +1,22 @@
 $ORIGIN b0x.pw.
-$TTL 30m
+$TTL 15m
 
+; SOA/NS
 @ IN SOA f0.pzskc383.dp.ua. root.post ( <%= @serial %> 4h 1h 2w 1h )
 @ IN NS f0.pzskc383.dp.ua.
 @ IN NS a3.pzskc383.dp.ua.
+
+; dnssec/caa settings
 @ IN NSEC3PARAM 1 0 0 -
 @ IN CAA 128 issue "letsencrypt.org;validationmethods=dns-01"
 @ IN CAA 128 issuewild ";"
 @ IN CAA 128 iodef "mailto:reports+acme@post.b0x.pw"
+
+; disable mail
 @ IN MX 0 .
 @ IN TXT "v=spf1 -all"
+
+; apex -> f0rk
 @ IN A <%= node[:hosts].f0rk.v4 %>
 @ IN AAAA <%= node[:hosts].f0rk.v6 %>
 
@@ -22,6 +29,7 @@ the.far IN AAAA <%= node[:hosts].airstrip3.v6 %>
 the.main IN LOC 48 12 29.4 N 16 22 25.8 E 0.0m 10.0m 1000m 10m
 the.far  IN LOC 51 30 26.5 N  0  7 39.9 W 0.0m 10.0m 1000m 10m
 
+; sshfp (manual)
 the.main IN SSHFP 4 2 60fc27ce45f77ebd4f25261f5e1b31b329fc8dc7f5d8b190ed84aad8f88c1f94
 the.far IN SSHFP 4 2 f635ca62e1ec817a533094a92dcda52033ef6c7b2c9fcbc254779866c2b0dfe7
 
@@ -41,22 +49,28 @@ x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 
 ; post+aliases
 <%- %w[post my.post mail my.mail i.was.abused.by.the].each do |host| -%>
+; main records for <%= host %>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= host %> IN MX 10 the.main
 <%= host %> IN MX 20 the.far
+; extra records for <%= host %>
 <%= host %> IN TXT "v=spf1 mx -all"
 _dmarc.<%= host %> IN TXT "v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.b0x.pw; ruf=mailto:reports+dmarc.f@post.b0x.pw; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
 _smtp._tls.<%= host %> IN TXT "v=TLSRPTv1; rua=mailto:reports+tls@post.b0x.pw"
-_imap._tcp.<%= host %> IN SRV 0 0 143 the.main
-_submission._tcp.<%= host %> IN SRV 0 0 465 the.main
-_pop3._tcp.<%= host %> IN SRV 0 0 0 .
 <%- if node[:mail_dkim_dns_rr] -%>
 e._domainkey.<%= host %> IN TXT "<%= node[:mail_dkim_dns_rr] %>"
 <%- end -%>
+; srv records for <%= host %>
+_imap._tcp.<%= host %> IN SRV 0 0 143 the.main
+_submission._tcp.<%= host %> IN SRV 0 0 465 the.main
+; disabled srv records for <%= host %>
+_pop3._tcp.<%= host %> IN SRV 0 0 0 .
+_pop3s._tcp.<%= host %> IN SRV 0 0 0 .
+_imaps._tcp.<%= host %> IN SRV 0 0 0 .
 <%- end -%>
 
-; boot
+; boot.my.b0x
 <%- %w[boot.my xyz.boot.my].each do |host| -%>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
@@ -66,14 +80,20 @@ uefi.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 uefi.<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= host %> IN MX 0 .
 <%- end -%>
+; boot.*.on.my.b0x
 <%- %w[bsd alpine fedora].each do |os| -%>
 boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
 boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+boot.<%= os %>.on.my IN TXT "v=spf1 -all"
+boot.<%= os %>.on.my IN MX 0 .
 ipxe.boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
 ipxe.boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+ipxe.boot.<%= os %>.on.my IN TXT "v=spf1 -all"
+ipxe.boot.<%= os %>.on.my IN MX 0 .
 uefi.boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
 uefi.boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
-boot.<%= os %>.on.my IN MX 0 .
+uefi.boot.<%= os %>.on.my IN TXT "v=spf1 -all"
+uefi.boot.<%= os %>.on.my IN MX 0 .
 <%- end -%>
 
 ; talk
