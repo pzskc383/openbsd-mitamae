@@ -3,6 +3,8 @@ node.reverse_merge!(
   relayd_tls_certs: []
 )
 
+include_recipe "cert_group.rb"
+
 openbsd_package "lego"
 
 directory "/var/lego" do

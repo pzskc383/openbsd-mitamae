@@ -1,0 +1,39 @@
+daemon			yes
+debug			yes
+realm			talkbox
+syncinterval		600
+
+udp_listen		<%= node[:network_setup][:v4][:address] %>:3478
+udp_listen		[<%= node[:network_setup][:v6][:address] %>]:3478
+udp_sockbuf_size	524288
+
+tcp_listen		<%= node[:network_setup][:v4][:address] %>:3478
+tcp_listen		[<%= node[:network_setup][:v6][:address] %>]:3478
+
+
+module_path		/usr/local/lib/restund/modules
+# module			stat.so
+module			binding.so
+module			auth.so
+module			turn.so
+module			filedb.so
+module			syslog.so
+# module			status.so
+
+auth_nonce_expiry	3600
+auth_shared_expiry  86400
+auth_shared         <%= node[:prosody_turn_secret] %>
+
+turn_max_allocations	512
+turn_max_lifetime	600
+turn_relay_addr		127.0.0.1
+turn_relay_addr6	::1
+
+filedb_path		/etc/restund.auth
+
+syslog_facility		24
+
+# status_udp_addr		127.0.0.1
+# status_udp_port		33000
+# status_http_addr	127.0.0.1
+# status_http_port	8080
