@@ -1,0 +1,23 @@
+#	$OpenBSD: sshd_config,v 1.105 2024/12/03 14:12:47 dtucker Exp $
+
+Port 38322
+#AddressFamily any
+
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+
+PermitRootLogin prohibit-password
+AuthorizedKeysFile	.ssh/authorized_keys
+PubkeyAuthentication yes
+HostbasedAuthentication no
+PasswordAuthentication no
+PermitEmptyPasswords no
+KbdInteractiveAuthentication yes
+
+Banner none
+Subsystem sftp /usr/libexec/sftp-server
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha256
+MACs umac-128-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+HostKeyAlgorithms ssh-ed25519,rsa-sha2-256,rsa-sha2-512
+
+Include /etc/ssh/sshd.conf.d/*

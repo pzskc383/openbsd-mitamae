@@ -44,3 +44,5 @@ define :inetd_conf_lines, lines: [] do
   params[:lines].each { |line| node[:inetd_conf_lines].append line }
   notify! "create@template[/etc/inetd.conf]"
 end
+
+directory "/etc/ssh/sshd.conf.d"

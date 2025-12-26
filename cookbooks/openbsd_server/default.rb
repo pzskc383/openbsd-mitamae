@@ -1,5 +1,19 @@
 include_recipe "defines.rb"
 
+service "sshd"
+
+remote_file "/etc/ssh/sshd_config" do
+  source "files/sshd_config"
+  notifies :reload, "service[sshd]"
+end
+
+include_recipe "../pf/defines.rb"
+pf_open "ssh" do
+  port 383_22
+  proto "tcp"
+  label "ssh"
+end
+
 openbsd_package "vim" do
   action :install
   flavor "no_x11"

@@ -1,8 +1,8 @@
-openbsd_package "git"
-openbsd_package "zsh"
-openbsd_package "htop"
-openbsd_package "wget"
-openbsd_package "ncdu"
+package "git"
+package "zsh"
+package "htop"
+package "wget"
+package "ncdu"
 
 openbsd_package "rsync" do
   flavor nil
@@ -29,46 +29,3 @@ block_in_file "/root/.profile" do
     esac
   SNIPPET
 end
-
-execute "restart_sshd" do
-  action :nothing
-  command "rcctl restart sshd"
-  only_if "sshd -t"
-end
-
-service "sshd" do
-  action %i[enable start]
-  only_if "sshd -t"
-end
-
-kex_values = %w[
-  curve25519-sha256
-  curve25519-sha256@libssh.org
-  diffie-hellman-group16-sha512
-  diffie-hellman-group18-sha512
-  diffie-hellman-group-exchange-sha256
-].join(',')
-ssh_opts = [
-  "PermitRootLogin prohibit-password",
-  "PasswordAuthentication no",
-  "KexAlgorithms #{kex_values}",
-  "MACs umac-128-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com",
-  "HostKeyAlgorithms ssh-ed25519,rsa-sha2-256,rsa-sha2-512",
-  "Port 38322"
-].map do |line|
-  {
-    line: line,
-    regexp: %r{^\s*#?\s*#{line.split.first}\s+.*$},
-    append: true
-  }
-end
-
-lines_in_file "/etc/ssh/sshd_config" do
-  lines ssh_opts
-
-  notifies :run, "execute[restart_sshd]"
-end
-
-include_recipe "../pf/defines.rb"
-
-pf_open 383_22
