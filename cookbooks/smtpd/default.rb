@@ -40,8 +40,8 @@ node[:mail_role] = mail_role
 node[:mail_primary_domains] = primary_domains
 node[:mail_relay_domains] = relay_domains
 
-template "/etc/mail/mailname" do
-  source "templates/mailname.erb"
+file "/etc/mail/mailname" do
+  content node[:fqdn]
   mode "0664"
   notifies :restart, "service[smtpd]"
 end
@@ -177,5 +177,11 @@ execute "restart_smtpd" do
 end
 
 include_recipe "../pf/defines.rb"
-pf_open "smtp"
-pf_open "submission" if mail_role == 'primary'
+pf_open "smtp" do
+  label "mail-server"
+end
+if mail_role == 'primary'
+  pf_open "submission" do
+    label "mail-server"
+  end
+end

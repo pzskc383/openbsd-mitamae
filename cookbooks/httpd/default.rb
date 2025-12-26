@@ -23,10 +23,17 @@ template '/etc/httpd.conf' do
 end
 
 directory '/etc/relayd.conf.d'
-template '/etc/relayd.conf.d/http_headers.conf' do
-  source 'templates/relayd.http_headers.conf.erb'
+
+template '/etc/relayd.conf.d/http_routing.conf' do
+  source 'templates/relayd.http_routing.conf.erb'
   notifies :restart, 'service[relayd]'
 end
+
+remote_file '/etc/relayd.conf.d/http_headers.conf' do
+  source 'files/relayd.http_headers.conf'
+  notifies :restart, 'service[relayd]'
+end
+
 template '/etc/relayd.conf' do
   source 'templates/relayd.conf.erb'
   notifies :restart, 'service[relayd]'
@@ -55,7 +62,12 @@ service 'relayd' do
 end
 
 include_recipe "../pf/defines.rb"
-%w[http https].each { |port| pf_open(port) }
+%w[http https].each do |port|
+  pf_open "relayd/#{port}" do
+    label "http"
+    port port
+  end
+end
 node[:pf_enable_relayd] = true
 notify!("create@template[/etc/pf.conf]")
 

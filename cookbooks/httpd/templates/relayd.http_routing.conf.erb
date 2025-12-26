@@ -1,0 +1,6 @@
+# routing
+block request label "invalid hostname"
+
+<%- node[:relayd_http_filter_snippets].each do |lines| -%>
+<%= lines %>
+<%- end -%>

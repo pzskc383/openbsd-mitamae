@@ -58,6 +58,10 @@ end
   end
 end
 
+file "/etc/myname" do
+  content node[:fqdn]
+end
+
 %w[sndiod resolvd].each do |srv|
   service srv do
     action %i[stop disable]

@@ -1,9 +1,10 @@
-admins = { "<%= node[:prosody_admin_jid] %>" }
+default_admins = { "<%= node[:prosody_admin_jid] %>" }
+default_acl = { "pzskc383.net", "pzskc383.dp.ua", "talk.b0x.pw" }
 
 prosody_user = "_prosody"
 prosody_group = "_prosody"
 pidfile = "/var/prosody/prosody.pid"
-plugin_paths = { "/var/prosody/community-plugins" }
+plugin_paths = { "/usr/local/lib/prosody/modules/", "/var/prosody/community-plugins" }
 
 modules_enabled = {
 		"disco";
@@ -45,10 +46,11 @@ modules_enabled = {
 		"groups";
 		"mimicking";
 		"motd";
-		"proxy65";
 		"s2s_bidi";
 		"server_contact_info";
 		"http";
+		--
+		"compliance_latest";
 }
 modules_disabled = {
 }
@@ -79,24 +81,92 @@ certificates = "certs"
 
 http_ports = { 5280 }
 http_interfaces = { "127.0.0.1", "::1" }
-https_ports = { 5281 }
-https_interfaces = { "*", "::" }
+trusted_proxies = { "127.0.0.1", "::1" }
+http_paths = {
+    file_share = "/";
+    bosh = "/http-bind"
+}
 c2s_direct_tls_ports = { 5223 }
 s2s_direct_tls_ports = { 5270 }
+https_ports = { }
+https_interfaces = { }
+consider_bosh_secure = true
 
 VirtualHost "talk.b0x.pw"
+  name = "talk.b0x"
+  unrusted_fail_watchers = { "admin@talk.b0x.pw" }
+  contact_info = {
+    admin = { "xmpp:admin@talk.b0x.pw" };
+    abuse = { "xmpp:admin@talk.b0x.pw", "mailto:owner@post.b0x.pw" };
+  }
+  http_external_url = "https://talk.b0x.pw/"
+
   ssl = {
     certificate = "/etc/ssl/talk_box.crt";
     key = "/etc/ssl/private/talk_box.key";
   };
 
   Component "chat.talk.b0x.pw" "muc"                
+	name = "chat@talk.b0x"
     modules_enabled = {                             
       "muc_mam";                                  
     }         
+  	restrict_room_creation = "local";
+  	muc_room_default_public = true
+	muc_room_default_persistent = false
+	muc_room_default_members_only = false
+	muc_room_default_moderated = false
+	muc_room_default_public_jids = false
+	muc_room_default_change_subject = true
+	muc_room_default_history_length = 2000000
+	muc_room_default_language = "en"
+	muc_tombstones = true
+	muc_tombstone_expiry = 86400 * 31
+  	muc_log_by_default = true;
+  	muc_log_all_rooms = true;
+  	muc_log_presences = false
+  	muc_log_expires_after = "1y";
+  	muc_log_cleanup_interval = 4 * 60 * 60
+  	muc_room_locking = true
+	muc_room_lock_timeout = 180
+	muc_vcard = true
+
 
   Component "share.talk.b0x.pw" "http_file_share"     
-    modules_disabled = {
-      "s2s";
-    }
+	name = "share@talk.b0x"
+    modules_disabled = { "s2s" }
+    http_file_share_access = default_acl
+    http_external_url = "https://share.talk.b0x.pw/"
+    http_file_share_expires_after = "1 months"
+
+    -- 50Mb per file, 512Mb daily, 2Gb total
+    http_file_share_size_limit = 50*1024*1024
+    http_file_share_daily_quota = 512*1024*1024
+    http_file_share_global_quota = 5*1024*1024*1024
+
+
+  Component "relay.talk.b0x.pw" "proxy65"
+	name = "relay@talk.b0x"
+    modules_disabled = { "s2s" }
+    proxy65_address = "relay.talk.b0x.pw"
+    proxy65_acl = default_acl
+
+
+VirtualHost "pzskc383.dp.ua"
+  name = "old, dead, empty"
+  ssl = {
+    certificate = "/etc/ssl/wild_dpua.crt";
+    key = "/etc/ssl/private/wild_dpua.key";
+  };
+  http_external_url = "https://pzskc383.dp.ua/"
+
+
+VirtualHost "pzskc383.net"
+  name = "personal server"
+  ssl = {
+    certificate = "/etc/ssl/wild_net.crt";
+    key = "/etc/ssl/private/wild_net.key";
+  };
+  http_external_url = "https://pzskc383.net/"
+
 

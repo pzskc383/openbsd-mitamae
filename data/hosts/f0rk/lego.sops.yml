@@ -54,10 +54,11 @@ properties:
                 - ENC[AES256_GCM,data:2kY2nnEGfIRD8wkftWv3rw==,iv:msVgrDzq7ROVFlV/4Z+FSrwbURYy9HU22qYdshcm0TQ=,tag:xCbUqS+grbG6F7GZzkLBvg==,type:str]
                 - ENC[AES256_GCM,data:si74aoQ8hWCEDI8x3kwfYI4=,iv:uz+rgM5cvvtA7+7nfHOrPBiIaadUo8IGp3PmCeKfDfw=,tag:dD03/Crck4dKecWIKnTNCg==,type:str]
                 - ENC[AES256_GCM,data:mPaMnbanE1NZVqbL36OZgg==,iv:WowHJGxmEs0kZAQaMK1gVw2e7rrT8zc8wLtvJWcjxX8=,tag:iQJtoWiShEsw1EERdg41qw==,type:str]
+                - ENC[AES256_GCM,data:RztCAr42dPi7qkwm0oWYJSg=,iv:ZTexFS10q/E4tbh1zuCc6735tm5GGLp0uVfnKGG+X8g=,tag:4p4QgrNrU5w1WKGEdlaWyQ==,type:str]
               zone: ENC[AES256_GCM,data:FNM+AU62,iv:7wAh8rrgKUubQGypqgc+ZF45Uy6ba0GjwRCauVFpF80=,tag:MIE5Mfb23Ai4dZtrmKanig==,type:str]
 sops:
-    lastmodified: "2025-12-25T06:50:09Z"
-    mac: ENC[AES256_GCM,data:+URrY21gQq9o/eybleTj/Fo4bt/Nhdv8u5fPR2UMoS0myWEU/KnDtYqBeZITUUEkyKAEORXKRNXHCq0Uw97sGRmovmbjb4n4E0A4ERq1vah1+fA6Y7Hh9IDjSjjXHUjwTFn2Cgjgq5PafUrliUBYjHdKnG/omlcu16B/TaAx2Fw=,iv:tfXA3ip/lvjt8SltJpNtau5aEevzTyoBt7lJgRyWLhs=,tag:+9KvB2NYN42RWZRGbzvncQ==,type:str]
+    lastmodified: "2025-12-26T03:13:19Z"
+    mac: ENC[AES256_GCM,data:F6XSqun06/CyO3qSCEj51r8+qQka13AWPX2z6Q3DBm+epmJxpjkP5nI5nbGlligsYEviX6ZoltjCVscNv2NGTCfXvHP2/RPUuYp6ZSSgXhuRGVjEXDIzJNklyDd0gLXt7cZVYRVl7XhQRoCA1/4WLBgT88DCCwD7AeuRADlb+qM=,iv:YocyLaUb0RP8KsSOjdEQMTQlHYNpOy7ANKWXQCifuOY=,tag:IcCnTAYvHQ5c0VC+vfvTgA==,type:str]
     pgp:
         - created_at: "2025-12-16T22:33:00Z"
           enc: |-

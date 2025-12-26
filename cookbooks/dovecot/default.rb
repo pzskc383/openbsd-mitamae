@@ -187,5 +187,9 @@ service "dovecot" do
 end
 
 include_recipe "../pf/defines.rb"
-pf_open "imap"
-pf_open "sieve"
+pf_open "imap" do
+  label "mail-user"
+end
+pf_open "sieve" do
+  label "mail-user"
+end

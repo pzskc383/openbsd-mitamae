@@ -21,7 +21,7 @@ ports = [3478, 3479, 5349, 5350]
 protos = %w[tcp udp]
 ports.each do |port|
   protos.each do |proto|
-    pf_open "#{port}/#{proto}" do
+    pf_open "turn/#{port}/#{proto}" do
       port port
       proto proto
       label "turn"

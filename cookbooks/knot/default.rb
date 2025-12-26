@@ -142,5 +142,6 @@ end
   pf_open "domain" do
     port "domain"
     proto proto
+    label "dns"
   end
 end

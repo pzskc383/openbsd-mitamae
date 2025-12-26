@@ -1,7 +1,7 @@
 node.reverse_merge!(
   prosody_turn_secret: "",
   prosody_admin_jid: "",
-  prosody_admin_password: "",
+  prosody_admin_password: ""
 )
 
 include_recipe "coturn.rb"
@@ -61,10 +61,22 @@ execute "setup prosody admin" do
 end
 
 include_recipe "../pf/defines.rb"
-%w[xmpp-client xmpp-server].each do |port|
-  pf_open port do
+%w[xmpp-client xmpp-server xmpp-bosh 5223 5970].each do |port|
+  pf_open "xmpp/#{port}" do
     port port
     proto "tcp"
     label "xmpp"
   end
 end
+
+node[:relayd_http_filter_snippets].append <<~PROSODY_RELAYD_CONF
+  match request header "Host" value "share.talk.b0x.pw" tag "xmpp_file_share"
+  match request header "Host" value "talk.b0x.pw" tag "xmpp_domain"
+  match request header "Host" value "pzskc383.dp.ua" tag "xmpp_domain"
+  match request header "Host" value "pzskc383.net" tag "xmpp_domain"
+  pass request tagged "xmpp_file_share" forward to <prosody_plain>
+  pass request tagged "xmpp_domain" path "/http-bind" forward to <prosody_plain>
+  pass request tagged "xmpp_domain" path "/xmpp-websocket" forward to <prosody_plain>
+  pass request tagged "xmpp_domain" path "/.well-known/host-info" forward to <prosody_plain>
+  pass request tagged "xmpp_domain" forward to <httpd_tls>
+PROSODY_RELAYD_CONF

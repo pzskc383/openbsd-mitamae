@@ -1,11 +1,24 @@
 node[:relayd_http_filter_snippets].append <<~SNIPPET
+  # skip already prefixed domains
+  match request header "Host" value "ipxe.boot.my.b0x.pw" tag "box-boot-rdr-done"
+  match request header "Host" value "ipxe.boot.*.on.my.b0x.pw" tag "box-boot-rdr-done"
+  match request header "Host" value "uefi.boot.my.b0x.pw" tag "box-boot-rdr-done"
+  match request header "Host" value "uefi.boot.*.on.my.b0x.pw" tag "box-boot-rdr-done"
+  # if we're asking for boot.b0x.pw domains
   match request header "Host" value "boot.my.b0x.pw" tag "box-boot"
-  match request header "Host" value "b.b0x.pw" tag "box-boot"
-  match request header "User-Agent" value "iPXE/*" tagged "box-boot" tag "box-boot-ipxe"
-  match request header "User-Agent" value "UefiHttpBoot/*" tagged "box-boot" tag "box-boot-uefi"
-  pass request tagged "box-boot-ipxe" header set "Host" value "ipxe.$HOST"
-  pass request tagged "box-boot-uefi" header set "Host" value "uefi.$HOST"
+  match request header "Host" value "boot.*.on.my.b0x.pw" tag "box-boot"
+  # AND requesting /
+  match request path "/" tagged "box-boot" tag "box-boot-root"
+  # AND have special user-agent
+  match request header "User-Agent" value "iPXE/*" tagged "box-boot-root" tag "box-boot-rdr-ipxe"
+  match request header "User-Agent" value "UefiHttpBoot/*" tagged "box-boot-root" tag "box-boot-rdr-uefi"
+  # THEN set host to specific boot endpoint AND PASS
+  pass request tagged "box-boot-rdr-ipxe" path set "/boot/ipxe.kpxe"
+  pass request tagged "box-boot-rdr-uefi" path set "/boot/ipxe.uefi"
+  # pass everything to boot domains
   pass request tagged "box-boot"
+  pass request tagged "box-boot-root"
+  pass request tagged "box-boot-rdr-done"
 SNIPPET
 
 template "/etc/httpd.conf.d/box_boot.conf" do

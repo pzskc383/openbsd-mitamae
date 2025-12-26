@@ -1,57 +1,54 @@
 include "/etc/httpd.conf.d/macro.conf"
 
-public_ipv4 = "<%= node[:network_setup][:v4][:address] %>"
-public_ipv6 = "<%= node[:network_setup][:v6][:address] %>"
-
+public_iface="vio0"
+public_ipv4="<%= node[:network_setup][:v4][:address] %>"
+public_ipv6="<%= node[:network_setup][:v6][:address] %>"
+tcp_default_options="{ sack, backlog 512, nodelay, socket buffer 65536 }"
 
 prefork 5
 interval 30
 log state changes
-log connection # errors
+log connection errors
+
+table <httpd_plain> { 127.0.0.1 }
+table <httpd_tls> { 127.0.0.1 }
+table <prosody_plain> { 127.0.0.1 }
 
 # HTTP plain
 http protocol http_plain {
-    tcp { sack, backlog 512 }
+    tcp $tcp_default_options
     return error style "* { font-family: monospace; color: #f00; background-color: #333; font-weight: bold; }"
+
     include "/etc/relayd.conf.d/http_headers.conf"
+    include "/etc/relayd.conf.d/http_routing.conf"
 }
 
-relay ipv4_www {
-    listen on $public_ipv4 port 80
+relay ip_www {
+    listen on $public_iface port 80
     protocol http_plain
-    forward to 127.0.0.1 port $httpd_plain_port 
+    forward to <httpd_plain> port $httpd_plain_port 
+    forward to <prosody_plain> port $prosody_plain_port
 }
-
-relay ipv6_www {
-    listen on $public_ipv6 port 80
-    protocol http_plain
-    forward to 127.0.0.1 port $httpd_plain_port 
-}
-
 <%- if !node[:relayd_tls_certs].empty? %>
 # TLS
 http protocol http_tls {
-    tcp { sack, backlog 512 }
+    tcp $tcp_default_options
     tls edh params auto
-    # tls no tlsv1.0
-    # tls session tickets
-    # tls ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+    tls session tickets
 <%- node[:relayd_tls_certs].each do |cert| -%>
     tls { keypair <%= cert %> }
 <%- end -%>
 
+    return error style "* { font-family: monospace; color: #f00; background-color: #333; font-weight: bold; }"
+
     include "/etc/relayd.conf.d/http_headers.conf"
+    include "/etc/relayd.conf.d/http_routing.conf"
 }
 
-relay ipv4_tls {
-    listen on $public_ipv4 port 443 tls
+relay ip_tls {
+    listen on $public_iface port 443 tls
     protocol http_tls
-    forward to 127.0.0.1 port $httpd_tls_port 
+    forward to <httpd_tls> port $httpd_tls_port 
+    forward to <prosody_plain> port $prosody_plain_port
 }
-
-relay ipv6_tls {
-    listen on $public_ipv6 port 443 tls
-    protocol http_tls
-    forward to 127.0.0.1 port $httpd_tls_port 
-}
-<%- end %>
+<%- end -%>

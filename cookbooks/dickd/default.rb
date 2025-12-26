@@ -32,7 +32,9 @@ inetd_conf_lines "erection" do
   ]
 end
 
-pf_open "telnet"
+pf_open "telnet" do
+  label "misc"
+end
 
 service "inetd" do
   action %i[enable start]

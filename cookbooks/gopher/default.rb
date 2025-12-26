@@ -17,4 +17,6 @@ remote_file '/var/gopher/index.gph' do
 end
 
 include_recipe "../pf/defines.rb"
-pf_open "gopher"
+pf_open "gopher" do
+  label "misc"
+end
