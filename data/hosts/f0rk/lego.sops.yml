@@ -55,10 +55,11 @@ properties:
                 - ENC[AES256_GCM,data:si74aoQ8hWCEDI8x3kwfYI4=,iv:uz+rgM5cvvtA7+7nfHOrPBiIaadUo8IGp3PmCeKfDfw=,tag:dD03/Crck4dKecWIKnTNCg==,type:str]
                 - ENC[AES256_GCM,data:mPaMnbanE1NZVqbL36OZgg==,iv:WowHJGxmEs0kZAQaMK1gVw2e7rrT8zc8wLtvJWcjxX8=,tag:iQJtoWiShEsw1EERdg41qw==,type:str]
                 - ENC[AES256_GCM,data:RztCAr42dPi7qkwm0oWYJSg=,iv:ZTexFS10q/E4tbh1zuCc6735tm5GGLp0uVfnKGG+X8g=,tag:4p4QgrNrU5w1WKGEdlaWyQ==,type:str]
+                - ENC[AES256_GCM,data:JJr7cZKODLB8GT5afuKX4g==,iv:cKUU39+QO+1YyaY+9elqtOaVUKJLR8cZs6+jboj3ySY=,tag:yoeiuII8DbV9tg25MXgy8w==,type:str]
               zone: ENC[AES256_GCM,data:FNM+AU62,iv:7wAh8rrgKUubQGypqgc+ZF45Uy6ba0GjwRCauVFpF80=,tag:MIE5Mfb23Ai4dZtrmKanig==,type:str]
 sops:
-    lastmodified: "2025-12-26T03:13:19Z"
-    mac: ENC[AES256_GCM,data:F6XSqun06/CyO3qSCEj51r8+qQka13AWPX2z6Q3DBm+epmJxpjkP5nI5nbGlligsYEviX6ZoltjCVscNv2NGTCfXvHP2/RPUuYp6ZSSgXhuRGVjEXDIzJNklyDd0gLXt7cZVYRVl7XhQRoCA1/4WLBgT88DCCwD7AeuRADlb+qM=,iv:YocyLaUb0RP8KsSOjdEQMTQlHYNpOy7ANKWXQCifuOY=,tag:IcCnTAYvHQ5c0VC+vfvTgA==,type:str]
+    lastmodified: "2025-12-26T13:32:37Z"
+    mac: ENC[AES256_GCM,data:DvNVVz8jiFDIwhO/qWSj7r8vYt3G3l9rVcIysW8jWqu/+/sS05JfFAZ5gXsbfsOH64FZisKWH/EOjfphsuIH0j31rs+eJrLgapWuyxItENgm1+QuTwCk86USLz7vH9AP+oFuj6qGphyc/Xz6vjVS/0hhd7LjQjUflGy5QwTIskE=,iv:i2uzJgG7yDtTT2h+vLj6eVDIDi1eQY/qsPvnJ4hoST0=,tag:/4/ZebkoEc3mHHC7vhPoBg==,type:str]
     pgp:
         - created_at: "2025-12-16T22:33:00Z"
           enc: |-

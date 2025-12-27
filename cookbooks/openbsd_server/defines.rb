@@ -36,7 +36,7 @@ service "inetd"
 template "/etc/inetd.conf" do
   action :nothing
   source "templates/inetd.conf.erb"
-  notifies :restart, "service[inetd]"
+  notifies :reload, "service[inetd]"
 end
 
 define :inetd_conf_lines, lines: [] do

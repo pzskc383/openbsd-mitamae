@@ -8,10 +8,12 @@ remote_file "/etc/ssh/sshd_config" do
 end
 
 include_recipe "../pf/defines.rb"
-pf_open "ssh" do
-  port 383_22
-  proto "tcp"
-  label "ssh"
+[22, 383_22].each do |port|
+  pf_open "ssh" do
+    port port
+    proto "tcp"
+    label "ssh"
+  end
 end
 
 openbsd_package "vim" do
@@ -28,6 +30,11 @@ end
     source "files/#{File.basename(fn)}"
     mode "0640"
   end
+end
+
+template "/etc/hosts" do
+  mode "0644"
+  source "templates/hosts.erb"
 end
 
 remote_file "/etc/resolv.conf" do

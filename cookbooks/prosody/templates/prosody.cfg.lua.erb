@@ -1,5 +1,5 @@
 default_admins = { "<%= node[:prosody_admin_jid] %>" }
-default_acl = { "pzskc383.net", "pzskc383.dp.ua", "talk.b0x.pw" }
+local _default_acl = { "pzskc383.net", "pzskc383.dp.ua", "talk.b0x.pw" }
 
 prosody_user = "_prosody"
 prosody_group = "_prosody"
@@ -51,6 +51,7 @@ modules_enabled = {
 		"http";
 		--
 		"compliance_latest";
+		"privilege";
 }
 modules_disabled = {
 }
@@ -64,7 +65,12 @@ limits = {
 		rate = "300kb/s";
 	};
 }
+
 authentication = "internal_hashed"
+
+storage = "sql"
+sql = { driver = "SQLite3", database = "prosody.sqlite3" }
+
 archive_expires_after = "1y"
 
 turn_external_host = "turn.talk.b0x.pw"
@@ -73,8 +79,8 @@ turn_external_tcp = true
 turn_external_tls_port = 5349
 
 log = {
-	info = "/var/prosody/prosody.log";
-	error = "/var/prosody/prosody.err";
+	{ levels = { min = "info" }, to = "syslog" },
+	{ levels = { min = "debug" }, to = "file", filename = "/var/prosody/prosody.log" },
 }
 statistics = "internal"
 certificates = "certs"
@@ -92,6 +98,17 @@ https_ports = { }
 https_interfaces = { }
 consider_bosh_secure = true
 
+
+local _slidge_transport_privileges = {
+    roster = "both";
+    message = "outgoing";
+    iq = {
+      ["http://jabber.org/protocol/pubsub"] = "both";
+      ["http://jabber.org/protocol/pubsub#owner"] = "set";
+      ["urn:xmpp:http:upload:0"] = "get";
+    };
+}
+
 VirtualHost "talk.b0x.pw"
   name = "talk.b0x"
   unrusted_fail_watchers = { "admin@talk.b0x.pw" }
@@ -100,6 +117,9 @@ VirtualHost "talk.b0x.pw"
     abuse = { "xmpp:admin@talk.b0x.pw", "mailto:owner@post.b0x.pw" };
   }
   http_external_url = "https://talk.b0x.pw/"
+  privileged_entities = {
+  	  ["gram.talk.b0x.pw"] = _slidge_transport_privileges
+  }
 
   ssl = {
     certificate = "/etc/ssl/talk_box.crt";
@@ -135,10 +155,9 @@ VirtualHost "talk.b0x.pw"
   Component "share.talk.b0x.pw" "http_file_share"     
 	name = "share@talk.b0x"
     modules_disabled = { "s2s" }
-    http_file_share_access = default_acl
+    http_file_share_access = { "talk.b0x.pw", "gram.talk.b0x.pw" }
     http_external_url = "https://share.talk.b0x.pw/"
     http_file_share_expires_after = "1 months"
-
     -- 50Mb per file, 512Mb daily, 2Gb total
     http_file_share_size_limit = 50*1024*1024
     http_file_share_daily_quota = 512*1024*1024
@@ -149,7 +168,13 @@ VirtualHost "talk.b0x.pw"
 	name = "relay@talk.b0x"
     modules_disabled = { "s2s" }
     proxy65_address = "relay.talk.b0x.pw"
-    proxy65_acl = default_acl
+    proxy65_acl = _default_acl
+
+  Component "gram.talk.b0x.pw"
+	name = "telegram@talk.b0x.pw"
+	component_secret = "<%= node[:xmpp_telegram_transport_secret] %>"
+	modules_enabled = { "privilege" }
+
 
 
 VirtualHost "pzskc383.dp.ua"

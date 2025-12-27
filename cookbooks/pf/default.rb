@@ -18,7 +18,7 @@ sysctl "pf" do
     net.inet.ipcomp.enable=1
     net.inet.tcp.rfc3390=1
     net.inet.ip.ifq.maxlen=8192
-    net.inet.tcp.mssdflt=1440
+    net.inet.tcp.mssdflt=1460
     net.inet.ip.mtudisc=0
   ]
 end

@@ -37,33 +37,31 @@ table <banned> persist counters file "/etc/pf/banned.table"
 # macro
 if_public="vio0"
 if_wglan="wg0"
-log_out = "log(user)"
-log_block = ""
+
+log_out = ""
+log_block = "log"
 log_block_out = "log(user, all)"
 log_icmp = ""
+
 ratelimit_icmp = "max-pkt-rate 100/10"
-default_state = "synproxy state"
+tcp_state = "synproxy state scrub ( no-df random-id reassemble tcp )"
+udp_state = "keep state scrub ( no-df random-id )"
 
 # queues
 queue rootq on $if_public bandwidth 1G max 2.5G
 queue def_prio parent rootq bandwidth 100M min 10M
 queue def parent rootq bandwidth 900M default
 
-## scrub/normalize
-match in on $if_public scrub (no-df random-id)
-match in on $if_public proto tcp scrub(reassemble tcp max-mss 1440)
-
 # base
 block drop in $log_block on $if_public
-block return out $log_block_out proto { tcp, udp }
+block return out $log_block_out on $if_public proto { tcp, udp }
 
 # quick block
 block drop in $log_block quick on $if_public from <banned>
-# block drop in $log_block quick on $if_public from <overload>
 
-block drop in $log_block quick on $if_public inet from <bogons4>
-block return out $log_block_out quick on $if_public inet to <bogons4>
+block drop in $log_block on $if_public inet from <bogons4>
 block drop in $log_block on $if_public inet6 from <bogons6>
+block return out $log_block_out on $if_public inet to <bogons4>
 block return out $log_block_out on $if_public inet6 to <bogons6>
 
 # icmp|6
@@ -84,7 +82,10 @@ pass out $log_out on $if_public proto udp to port ntp user _ntp
 pass out $log_out on $if_public proto tcp to port https user _ntp
 pass out $log_out on $if_public proto tcp to port { ftp http https } group { _pfetch _pkgfetch _syspatch }
 pass out $log_out on $if_public proto tcp to port smtp user _smtpd
+# root usage
 pass out $log_out on $if_public proto { tcp udp } user root allow-opts
+# traceroute
+pass out $log_out on $if_public proto udp to port 33434:33690 user root
 
 
 # vim: ft=pf

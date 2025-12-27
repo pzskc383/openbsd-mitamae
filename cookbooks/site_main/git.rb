@@ -60,14 +60,39 @@ end
   end
 end
 
-include_recipe "../openbsd_server/defines.rb"
-inetd_conf_lines "gitdaemon" do
-  lines ["git stream tcp nowait nobody /usr/bin/git git daemon --inetd --verbose #{git_root}"]
+# include_recipe "../openbsd_server/defines.rb"
+# inetd_conf_lines "gitdaemon" do
+#   lines ["git stream tcp nowait git:_gitdaemon /usr/local/bin/git git daemon --inetd --verbose --export-all --base-path=#{git_root}"]
+# end
+
+service "gitdaemon" do
+  action :enable
+end
+file "/etc/login.conf.d/gitdaemon" do
+  content <<~LOGINCONF
+    gitdaemon:\
+        :setenv=HOME=/var/www/repos:\
+        :tc=daemon:
+  LOGINCONF
+  notifies :run, "execute[cap_mkdb /etc/login.conf]"
+end
+
+execute "cap_mkdb /etc/login.conf" do
+  action :nothing
+end
+
+# --user=_gitdaemon --group=_gitdaemon \
+execute "set gitdaemon flags" do
+  command <<~CMD
+    rcctl set gitdaemon flags --verbose --syslog --informative-errors \
+      --base-path=/var/www/repos /var/www/repos
+  CMD
+  notifies :restart, "service[gitdaemon]"
 end
 
 file "/etc/ssh/sshd.conf.d/git" do
   content <<~SSHD_CONFIG
-    Match User git
+    Match User git LocalPort 22
 	    AllowTcpForwarding no
 	    X11Forwarding no
 	    AllowAgentForwarding no

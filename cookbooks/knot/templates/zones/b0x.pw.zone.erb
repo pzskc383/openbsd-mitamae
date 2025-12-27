@@ -97,7 +97,7 @@ uefi.boot.<%= os %>.on.my IN MX 0 .
 <%- end -%>
 
 ; talk server and components
-<%- %w[talk chat.talk share.talk relay.talk turn.talk].each do |domain| -%>
+<%- %w[talk chat.talk share.talk relay.talk gram.talk turn.talk].each do |domain| -%>
 <%= domain %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= domain %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= domain %> IN MX 0 .
@@ -119,3 +119,5 @@ _xmpp-server._tcp.share.talk   IN SRV 0 0 5269 share.talk
 _xmpps-server._tcp.share.talk  IN SRV 0 0 5270 share.talk
 _xmpp-server._tcp.relay.talk   IN SRV 0 0 5269 relay.talk
 _xmpps-server._tcp.relay.talk  IN SRV 0 0 5270 relay.talk
+_xmpp-server._tcp.gram.talk    IN SRV 0 0 5269 gram.talk
+_xmpps-server._tcp.gram.talk   IN SRV 0 0 5270 gram.talk

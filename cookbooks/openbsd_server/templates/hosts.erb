@@ -1,0 +1,5 @@
+127.0.0.1	localhost
+::1		localhost
+
+<%= node[:network_setup][:v4][:address] %>	<%= node[:fqdn] %> <%= node[:dns_shortname] %>
+<%= node[:network_setup][:v6][:address] %>	<%= node[:fqdn] %> <%= node[:dns_shortname] %>

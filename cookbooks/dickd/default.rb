@@ -39,3 +39,13 @@ end
 service "inetd" do
   action %i[enable start]
 end
+
+file "/etc/ssh/sshd.conf.d/invalid" do
+  content <<~SSHD_CONFIG
+    Match Invalid-User LocalPort 22
+      ForceCommand "/usr/local/bin/erection -d"
+      PermitTTY no
+  SSHD_CONFIG
+
+  notifies :reload, "service[sshd]"
+end

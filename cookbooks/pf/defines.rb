@@ -26,7 +26,7 @@ define :pf_open, port: nil, proto: nil, label: nil do
   port = params[:port] || params[:name]
   proto = params[:proto] || "tcp"
 
-  rule_opts = proto == "udp" ? "keep state" : "modulate state"
+  rule_opts = "$#{proto}_state"
   rule_opts = "label #{params[:label]} #{rule_opts}" if params[:label]
 
   rule = "pass in on $if_public proto #{proto} to port #{port} #{rule_opts}"

@@ -7,10 +7,10 @@ HISTSIZE=1000000
 
 PS1=''
 if [ "$(id -u)" -ne 1000 ]; then
-    PS1='$( id -un )@'
+    PS1='$( id -un )'
 fi
 if ! [ -z "$SSH_CLIENT" ]; then
-    PS1="$PS1"'$( expr $(hostname) : "\([^.]*\)" )'
+    PS1="$PS1"@"$HOSTNAME"
 fi
 
 PS1="${PS1+$PS1 }"\

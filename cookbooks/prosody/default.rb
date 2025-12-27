@@ -41,6 +41,37 @@ execute "pull prosody community modules" do
   only_if "test -d #{PROSODY_COMMUNITY_MODULES_DIR}/.hg"
 end
 
+define :prosody_user, password: nil, role: nil do
+  jid = params[:name]
+  password = params[:password]
+  username, domain = jid.split(%r{@})
+  role = params[:role] || "prosody:registered"
+
+  user_check = run_command(<<~CMD, error: false)
+    echo "user:list('#{domain}', '#{username}')" |\
+      prosodyctl shell 2>/dev/null |\
+      grep -qF 'Showing 1 of '
+  CMD
+  ::MItamae.logger.info user_check.inspect
+
+  execute "prosody_user #{jid}" do
+    command <<~CMD
+      echo "user:create('#{jid}', '#{password.shellescape}', '#{role}')" |\
+        prosodyctl shell 2>/dev/null
+    CMD
+    not_if { user_check.exit_status == 0 }
+  end
+end
+
+node[:prosody_accounts].each do |acc|
+  ::MItamae.logger.info acc.inspect
+
+  prosody_user acc[:jid] do
+    password acc[:password]
+    role acc[:role]
+  end
+end
+
 execute "setup prosody admin" do
   admin_jid = node[:prosody_admin_jid]
   admin_jid_username, admin_jid_domain = admin_jid.split(%r{@})
