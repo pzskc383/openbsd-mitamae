@@ -7,12 +7,13 @@ git_root = node[:git_root]
 git_template = "#{git_root}/.template"
 git_shell_cmds = "#{git_root}/git-shell-commands"
 
+package "git"
 group "git" do
   gid 1997
 end
 
 execute "create git user" do
-  command "useradd -g git -G _gitdaemon -d #{git_root} -u 1997 -s /usr/local/bin/git-shell -c 'Git hosting user' git"
+  command "useradd -g _gitdaemon -d #{git_root} -u 1997 -s /usr/local/bin/git-shell -c 'Git hosting user' git"
   not_if "id git"
 end
 
@@ -22,15 +23,12 @@ directory git_root do
   mode "0755"
 end
 
-file "/etc/ssh"
-
 file "#{git_root}/.authorized_keys" do
   content node[:git_authorized_keys].join("\n")
   mode "0600"
   owner "git"
   group "git"
 end
-
 execute "create repo template" do
   command "git init --bare #{git_template}"
   not_if "test -d #{git_template}"
@@ -60,28 +58,10 @@ end
   end
 end
 
-# include_recipe "../openbsd_server/defines.rb"
-# inetd_conf_lines "gitdaemon" do
-#   lines ["git stream tcp nowait git:_gitdaemon /usr/local/bin/git git daemon --inetd --verbose --export-all --base-path=#{git_root}"]
-# end
-
 service "gitdaemon" do
   action :enable
 end
-file "/etc/login.conf.d/gitdaemon" do
-  content <<~LOGINCONF
-    gitdaemon:\
-        :setenv=HOME=/var/www/repos:\
-        :tc=daemon:
-  LOGINCONF
-  notifies :run, "execute[cap_mkdb /etc/login.conf]"
-end
 
-execute "cap_mkdb /etc/login.conf" do
-  action :nothing
-end
-
-# --user=_gitdaemon --group=_gitdaemon \
 execute "set gitdaemon flags" do
   command <<~CMD
     rcctl set gitdaemon flags --verbose --syslog --informative-errors \
@@ -90,14 +70,21 @@ execute "set gitdaemon flags" do
   notifies :restart, "service[gitdaemon]"
 end
 
+execute "set gitdaemon user" do
+  command <<~CMD
+    rcctl set gitdaemon user git
+  CMD
+  notifies :restart, "service[gitdaemon]"
+end
+
 file "/etc/ssh/sshd.conf.d/git" do
   content <<~SSHD_CONFIG
     Match User git LocalPort 22
-	    AllowTcpForwarding no
-	    X11Forwarding no
-	    AllowAgentForwarding no
-	    PermitTTY no
-	    AuthorizedKeysFile .authorized_keys
+	      AllowTcpForwarding no
+	      X11Forwarding no
+	      AllowAgentForwarding no
+	      PermitTTY no
+	      AuthorizedKeysFile .authorized_keys
   SSHD_CONFIG
 
   notifies :reload, "service[sshd]"

@@ -9,8 +9,7 @@ _err() {
 
 repo_name="$1"
 repo_name="${repo_name%/}"
-repo_name="${repo_name%.git}"
-repo_dir="${repo_name}.git"
+repo_dir="${repo_name}"
 
 if ! [ "${repo_name}" ]; then
   _err "you should provide repo_name of repository"

@@ -11,7 +11,7 @@ if ! [ "${name}" ]; then
   exit 1
 fi
 
-repo_dir="${name}.git"
+repo_dir="${name}"
 repo_config="${repo_dir}/config"
 
 git init --bare --template="${PWD}/.template" "${repo_dir}"
