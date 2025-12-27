@@ -11,7 +11,7 @@ _err() {
 	cd /var/www/repos || _err "git root doesn't exist!"
 	
 	for d in *; do
-		if ! [ -f $d/.git/config ]; continue; fi
+		if ! [ -f $d/.git/config ]; then continue; fi
 		name="${d%/}"
 		category="$(git config get -f "${d}"/config gitweb.category 2>/dev/null)"
 		description="$(git config get -f "${d}"/config gitweb.description 2>/dev/null)"

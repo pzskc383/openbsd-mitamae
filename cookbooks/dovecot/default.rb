@@ -29,16 +29,6 @@ execute "generate_dovecot_dhparam" do
 end
 
 ssl_config_block = <<~SSL_BLOCK
-
-  # DOVECOTSSL
-  local_name #{node[:fqdn]} {
-    ssl_cert = </etc/ssl/fqdn.crt
-    ssl_key = </etc/ssl/private/fqdn.key
-  }
-  # /DOVECOTSSL
-SSL_BLOCK
-ssl_config_block = <<~SSL_BLOCK
-
   # DOVECOTSSL
   ssl_cert = </etc/ssl/fqdn.crt
   ssl_key = </etc/ssl/private/fqdn.key
@@ -54,8 +44,8 @@ file "/etc/dovecot/conf.d/10-ssl.conf" do
     data.gsub!(%r{^.*ssl\s=\s(.*)$}, 'ssl = yes')
     data.gsub!(%r{^.*ssl_dh\s=\s(.*)$}, 'ssl_dh = </etc/ssl/dh-2048.pem')
 
-    data.gsub!(%r{# DOVECOTSSL\n.*\n# /DOVECOTSSL\n}m, '')
-    data.gsub!(%r{\n\Z}m, ssl_config_block)
+    data.gsub!(%r{\n*# DOVECOTSSL\n.*\n# /DOVECOTSSL\n*}m, '')
+    data << "\n#{ssl_config_block}\n"
   end
 
   notifies :restart, "service[dovecot]"

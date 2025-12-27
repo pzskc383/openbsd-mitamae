@@ -1,7 +1,7 @@
 node.reverse_merge!(
   prosody_turn_secret: "",
   prosody_admin_jid: "",
-  prosody_admin_password: ""
+  prosody_accounts: []
 )
 
 include_recipe "coturn.rb"
@@ -15,7 +15,6 @@ end
 
 service "prosody" do
   action :enable
-  only_if "prosodyctl check"
 end
 
 template "/etc/prosody/prosody.cfg.lua" do
@@ -25,21 +24,18 @@ template "/etc/prosody/prosody.cfg.lua" do
   group "_prosody"
 end
 
-openbsd_package "mercurial"
-
-PROSODY_COMMUNITY_MODULES_DIR = "/var/prosody/community-modules".freeze
-directory PROSODY_COMMUNITY_MODULES_DIR
-
-execute "clone prosody community modules" do
-  command "hg clone https://hg.prosody.im/prosody-modules/ #{PROSODY_COMMUNITY_MODULES_DIR}"
-  not_if "test -d #{PROSODY_COMMUNITY_MODULES_DIR}/.hg"
-end
-
-execute "pull prosody community modules" do
-  command "hg pull --update"
-  cwd PROSODY_COMMUNITY_MODULES_DIR
-  only_if "test -d #{PROSODY_COMMUNITY_MODULES_DIR}/.hg"
-end
+# openbsd_package "mercurial"
+# PROSODY_COMMUNITY_MODULES_DIR = "/var/prosody/community-modules".freeze
+# directory PROSODY_COMMUNITY_MODULES_DIR
+# execute "clone prosody community modules" do
+#   command "hg clone https://hg.prosody.im/prosody-modules/ #{PROSODY_COMMUNITY_MODULES_DIR}"
+#   not_if "test -d #{PROSODY_COMMUNITY_MODULES_DIR}/.hg"
+# end
+# execute "pull prosody community modules" do
+#   command "hg pull --update"
+#   cwd PROSODY_COMMUNITY_MODULES_DIR
+#   only_if "test -d #{PROSODY_COMMUNITY_MODULES_DIR}/.hg"
+# end
 
 define :prosody_user, password: nil, role: nil do
   jid = params[:name]
@@ -52,7 +48,6 @@ define :prosody_user, password: nil, role: nil do
       prosodyctl shell 2>/dev/null |\
       grep -qF 'Showing 1 of '
   CMD
-  ::MItamae.logger.info user_check.inspect
 
   execute "prosody_user #{jid}" do
     command <<~CMD
@@ -64,31 +59,10 @@ define :prosody_user, password: nil, role: nil do
 end
 
 node[:prosody_accounts].each do |acc|
-  ::MItamae.logger.info acc.inspect
-
   prosody_user acc[:jid] do
     password acc[:password]
     role acc[:role]
   end
-end
-
-execute "setup prosody admin" do
-  admin_jid = node[:prosody_admin_jid]
-  admin_jid_username, admin_jid_domain = admin_jid.split(%r{@})
-
-  shellscript = <<~COMMAND
-    if echo 'user:list("#{admin_jid_domain}","#{admin_jid_username}")' |\
-      prosodyctl shell 2>/dev/null |grep -qF "#{admin_jid}";
-    then
-      { echo "#{node[:prosody_admin_password]}"; echo "#{node[:prosody_admin_password]}"; } |\
-        prosodyctl passwd "#{admin_jid}"
-    else
-      { echo "#{node[:prosody_admin_password]}"; echo "#{node[:prosody_admin_password]}"; } |\
-        prosodyctl adduser "#{admin_jid}"
-    fi
-  COMMAND
-
-  command shellscript
 end
 
 include_recipe "../pf/defines.rb"
