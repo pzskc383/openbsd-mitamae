@@ -11,9 +11,9 @@ I used to use ansible for this, but MItamew is more flexible and.. well.. **FUN*
 ## rules
 
 - try to use base system, keep intalled packages and deps in general to minimum.
-- no php. just no. 
+- no php. just no.
 - preferrably no rust/go 50Mb static binaries. keep it simple.
-- be standards compliant. 
+- be standards compliant.
 - security: don't allow ssh logins except administrative root login.
 only with pubkeys and only on distinguished port.
 
@@ -24,21 +24,22 @@ only with pubkeys and only on distinguished port.
   - `data/hosts/<hostname>` is host-specific directories.
   - files ending with .sops.yaml are encrypted/decrypted with `sops` before cookbook application.
   - `lib/` has monkey-patches for hocho and mitamae
-- documenation is either right here in README.md on master or inside detached `notes` branch.
 - orphan branches
   - `notes` - misc project documentation and whatever LLMs think they need.
   - `dist` mitamae binaries living in own branch.
-- submodule use
+- submodule/subtree use
   - used for `resource-cron` mitamae plugin (external).
-  - used to pull mitamae sources for reference (vendored to detached branch in this repo called `mitamae-src`)
+  - used to pull mitamae sources for reference (using own fork with 4-line diff to upstream that adds mirb binary)
   - used to pull example mitamae projects i found on github for reference.
-  - `notes` and `dist` branches of this very repo referenced as submodules and put in misc/
-  - TL;DR - you probably only need `plugins/mitamae-plugin-resource-cron` to work. don't do `git submodule update --init --recursive` unless you want to.
+  - `notes` and `dist` branches of this very repo referenced as subtrees and put in misc/ by rake
+  - TL;DR - run `rake prepare` before deploying and run `rake prepare:examples` when you want to get references.
+- documenation is either RIGHT HERE in README.md on master or inside detached `notes` branch (should be mounted at misc/notes).
+    - yes, Claudie, your `CLAUDE.md` is rigth there, at misc/notes/CLAUDE.md, go ahead and read it.
 ## cookbooks overview and rough status
-- openbsd_server
+- openbsd\_server
   - sets up basic openbsd server stuff
   - reasonable and secure defaults
-- openbsd_admin
+- openbsd\_admin
   - stuff useful for console access
   - vim, htop, ncdu, doas, `HISTFILE`
 - pf
@@ -48,7 +49,7 @@ only with pubkeys and only on distinguished port.
   - TODO: actually react on those log
   - TODO: collect label statistic somewhere
   - TODO: debug count of resource invocations
-- openbsd_wireguard
+- openbsd\_wireguard
   - sets up internal backbone network on wireguard
   - TODO: not really used yet for anything
 - knot
@@ -59,7 +60,7 @@ only with pubkeys and only on distinguished port.
   - TODO: traffic monitoring
   - TODO: make different keys for lego updates and axfr
 - lego
-  - ACME certificate issuer. 
+  - ACME certificate issuer.
   - not using built-in acme-client used because i need dns-01 auth for wildcard domains.
   - TODO: publish tlsa records on cert issue
   - TODO: try ecdsa certificates.
@@ -93,25 +94,25 @@ only with pubkeys and only on distinguished port.
   - XMPP server. for talking to people.
   - TODO: currently userbase is completely different from email one
   - TODO: run compliance checks
-- site_main
+- site\_main
   - cookbooks for setting up my main site - pzskc383.net
   - TODO: jokes on you, it actually sets up git, and it's like 80% of it's code
   - TODO: move git setup out of here
-- site_fqdn
+- site\_fqdn
   - sets up default page to respond when we're answering to `Host:` equal to our fqdn, or our public ipv4/v6 addresses.
     - a simple webpage with abuse reporting email address.
     - and maybe bit of 'YOU'VE BEEN MONITORED' vibe.
     - TODO: maybe do it for default server too?
     - TOOD: return `text/plain` contenttype for extra cool.
-- site_box_main
+- site\_box\_main
   - `b0x.pw` - main landing page for b0x.pw services
-- site_box_boot
-  - `boot.my.b0x.pw` - netboot service. files served by httpd, that's it. 
+- site\_box\_boot
+  - `boot.my.b0x.pw` - netboot service. files served by httpd, that's it.
   - TODO: so far no custom configs, just deployed netboot.xyz on `x.` subdomain.
-- site_box_post
+- site\_box\_post
   - `post.b0x.pw` mail service langing page
-  - TODO: ascii art isn't a 
-- site_box_talk
+  - TODO: ascii art isn't a
+- site\_box\_talk
   - `talk.b0x.pw` xmpp service langing page
   - TODO: describe it
 - dickd
@@ -120,8 +121,8 @@ only with pubkeys and only on distinguished port.
   - TOOD: investigate plugging it as `rdr-to` target for bad hosts to feed them ascii penises instead of real service data.
 - gopher
   - a very simple gopher serving page.
-- openbsd_com0
-  - small cookbook for using console access on /dev/tty0. 
+- openbsd\_com0
+  - small cookbook for using console access on /dev/tty0.
   - TODO: remove me. it was used when i VPS servers with serial console access. i don't anymore.
 - ldap
   - sets up builtin base ldapd daemon to keep userbase singular between different services (so far prosody+xmpp+smptd)
