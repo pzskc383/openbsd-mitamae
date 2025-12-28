@@ -4,14 +4,30 @@
 
 [submodule "mitamae"]
 	path = misc/mitamae
-	url = https://github.com/itamae-kitchen/mitamae
+	url = git@the.main.b0x.pw:obsd-mitamae
+	branch = mitamae-src
+	shallow = true
+
+[submodule "notes"]
+	path = misc/notes
+	url = git@the.main.b0x.pw:obsd-mitamae
+	branch = notes
+	shallow = true
+[submodule "dist"]
+	path = misc/dist
+	url = git@the.main.b0x.pw:obsd-mitamae
+	branch = dist
+	shallow = true
 
 [submodule "example-ruby-infra"]
-	path = misc/example-ruby-infra
+	path = misc/examples/example-ruby-infra
 	url = https://github.com/ruby/ruby-infra-recipe
+	shallow = true
 [submodule "example-ruby-git"]
-	path = misc/example-ruby-git
+	path = misc/examples/example-ruby-git
 	url = https://github.com/ruby/git.ruby-lang.org
+	shallow = true
 [submodule "sorah-cnw"]
-	path = misc/sorah-cnw
+	path = misc/examples/sorah-cnw
 	url = https://github.com/sorah/cnw
+	shallow = true
