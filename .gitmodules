@@ -17,4 +17,4 @@
 [submodule "mitamae"]
 	path = misc/mitamae
 	url = git@pzskc383.net:mitamae
-	branch = master
+	branch = local-fixes
