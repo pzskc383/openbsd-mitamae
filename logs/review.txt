@@ -1,0 +1,1525 @@
+
+ * ▐▛███▜▌ *   Claude Code v2.0.76
+* ▝▜█████▛▘ *  Sonnet 4.5 · Claude Pro
+ *  ▘▘ ▝▝  *   ~/dev/obsd-mitamae
+
+  A gift for you
+  Your rate limits are 2x higher through 12/31. Enjoy the extra room to think!
+
+> /clear 
+  ⎿  (no content)
+
+> This project is getting big.
+
+```
+% cloc cookbooks/**/*.rb
+      30 text files.
+      30 unique files.
+       0 files ignored.
+
+github.com/AlDanial/cloc v 2.06  T=0.03 s (1189.4 files/s, 66688.3 lines/s)
+----------------------------------------------------------------------------
+---
+Language                     files          blank        comment           
+code
+----------------------------------------------------------------------------
+---
+Ruby                            30            262             51           
+1369
+----------------------------------------------------------------------------
+---
+SUM:                            30            262             51           
+1369
+----------------------------------------------------------------------------
+---
+```
+
+1.5 ruby loc and i'm still not satisfied.
+
+is it wrong? is it broken? should i rewrite it in ansbile or puppet or chef 
+or whatever?
+
+i need a honetst-to-god review. does this code even worth pushing? 
+
+● I'll give you an honest technical review. Let me explore your cookbooks to see what you've actually built.
+
+● Explore(Review mitamae cookbooks code)
+  ⎿  Done (55 tool uses · 57.2k tokens · 8m 30s)                           
+
+● Honest Code Review
+
+  I've reviewed all 30 cookbooks. Here's the objective assessment:
+
+  Is it wrong? No. The architecture is sound and appropriate for your use case.
+
+  Is it broken? Mostly no, but I found one confirmed bug and several potential issues.
+
+  Should you rewrite it? Absolutely not. This is good code for managing 2 OpenBSD servers.
+
+  ---
+  What You Built Well
+
+  1. Appropriate abstractions: Your custom defines (pf_open, sysctl, newsyslog_snippet) are used 26+ times across cookbooks. This is smart DRY without over-engineering.
+  2. OpenBSD-native approach: You're using the platform's tools (pf, rcctl, httpd, relayd) rather than fighting it. This is the right choice.
+  3. Consistent patterns: Notification chains, template usage, file permissions - all follow consistent conventions.
+  4. Security-conscious: sensitive true for secrets, restrictive permissions, proper certificate management.
+  5. Scale-appropriate: 1,682 lines for 20 services across 2 servers is reasonable. Not over-abstracted.
+
+  ---
+  Actual Issues Found
+
+  BUG - site_main/gotweb.rb:17
+  service("gotwebd") { %i[enable start] }  # ❌ Missing action keyword
+  Should be:
+  service("gotwebd") { action %i[enable start] }
+
+  Fragile pattern - dovecot/default.rb:105-159
+
+  Multiple nested regex substitutions on config files. This works but will break if upstream config format changes. Example:
+  data.gsub!(%r/service lmtp {\n.+?\n}\n/m) do |match|
+    match.gsub!(%r{\s*executable =.*$}, '')
+    match.gsub!(%r[\n}]m, "\n  executable = lmtp -L\n}")
+  end
+
+  Non-idempotent - ldap/default.rb:17-18
+  generate_result = run_command("dd if=/dev/random bs=1 |tr -dc 'a-zA-Z0-9'|dd bs=1 count=20")
+  No error handling. Will regenerate password on each run if not persisted. Could produce empty password if command fails.
+
+  Technical debt indicators:
+  - Commented-out code in smtpd, prosody, openbsd_server (suggests incomplete features)
+  - openbsd_server/default.rb:64 - network restart disabled with "NOT FUN, DON'T" comment
+  - site_main/cgit.rb - clones git repos without version pinning
+
+  ---
+  The Hard Truth
+
+  Your ~1,500 LOC manages:
+  - 2 servers with different roles (primary/secondary)
+  - DNS with DNSSEC (knot)
+  - Mail server with DKIM (smtpd + dovecot)
+  - XMPP server (prosody + coturn)
+  - Web services (httpd + relayd + multiple sites)
+  - VPN (WireGuard)
+  - LDAP directory
+  - Certificate automation (lego)
+  - Firewall rules (pf)
+  - Gopher server
+
+  This is non-trivial infrastructure. The fact that you're managing it with clean, maintainable code shows competence.
+
+  ---
+  Should You Push It?
+
+  Yes, if:
+  - It's managing your actual infrastructure successfully
+  - You want to version control your server configs
+  - You might want to reference it later
+  - You're comfortable with public visibility of your setup (with secrets encrypted)
+
+  Document first:
+  - Fix the gotweb bug
+  - Add a comment explaining the DNS serial calculation (knot/default.rb:88-91)
+  - Either complete or remove commented-out LDAP integration in smtpd
+
+  Don't push if:
+  - These servers aren't actually running this config
+  - You're embarrassed by the code (you shouldn't be - it's fine)
+
+  ---
+  Comparison to Alternatives
+
+  Ansible: Would be 2-3x more YAML. Not necessarily better for OpenBSD.
+
+  Puppet/Chef: Massive overkill for 2 servers. You'd spend more time fighting the framework.
+
+  mitamae: You made the right choice. Lightweight, Ruby-based, runs as compiled binary on OpenBSD.
+
+  ---
+  Bottom Line
+
+  This is solid infrastructure-as-code for a small-scale deployment. The implementation shows you understand both OpenBSD and configuration management principles.
+
+  The code quality is 7.5/10 - above average, with room for polish but no fundamental problems.
+
+  Worth pushing? Yes. Fix the gotweb bug first, add those 2-3 comments, then push it.
+
+  You're overthinking this.
+
+> you're WAY too kind.
+thanks for spotting bugs btw, trivial to fix, but missed.
+yes, dovecot config editing is a clusterfuck, i don't know any good way 
+around it.
+
+next question - is it worth setting up test-kitchen or smth to test it? 
+because right now i just test on prod 
+
+● Honest Answer: Probably Not Worth It
+
+  Let me lay out the brutal math:
+
+  The Test-Kitchen Reality Check
+
+  Time to set up:
+  - Test-kitchen + OpenBSD: 20-40 hours (it's not well-supported)
+  - Finding/building OpenBSD Vagrant boxes: 5-10 hours
+  - Writing test specs: 10-20 hours
+  - Debugging why tests fail in VM but work on real servers: ∞ hours
+
+  Time saved per year:
+  - Catching bugs before prod: Maybe 2-5 hours?
+  - Faster iteration: Maybe 5-10 hours?
+
+  ROI: Negative for a 2-server setup.
+
+  ---
+  Why Test-Kitchen Is Pain Here
+
+  1. OpenBSD support is garbage
+    - Test-kitchen assumes Linux (Debian/Ubuntu)
+    - Kitchen-vagrant OpenBSD boxes are rare/outdated
+    - Kitchen-docker doesn't work (no OpenBSD containers)
+  2. mitamae is not Chef
+    - Kitchen-mitamae plugin exists but unmaintained
+    - You'd be debugging the test framework, not your code
+  3. State is hard to mock
+    - DNS with DNSSEC signing
+    - ACME cert generation (needs real DNS)
+    - WireGuard networking
+    - Mail server testing (needs real SMTP/IMAP)
+
+  You'd end up with tests that either:
+    - Skip the hard parts (useless)
+    - Require massive mocking (brittle)
+  4. The bugs you actually have wouldn't be caught
+    - service("gotwebd") { %i[enable start] } - syntax is valid Ruby
+    - Commented-out code - tests won't notice
+    - Non-idempotent password generation - would need specific test
+    - Dovecot regex fragility - only breaks on upstream changes
+
+  ---
+  What You Actually Need
+
+  You already have 80% of the value:
+
+  # Your existing safety net
+  hocho apply --dry-run airstrip3
+
+  This catches:
+  - Syntax errors
+  - Missing files/templates
+  - Resource conflicts
+  - What would actually change
+
+  For the remaining 20%, consider:
+
+  1. Manual staging VM (2-4 hours setup)
+  # Spin up a $5 Vultr OpenBSD VPS as "staging"
+  # Add to hocho.yml
+  # Test major changes there first
+    - Only use it for risky changes
+    - Destroy when not needed
+    - Costs $0.01/hour
+  2. Pre-deploy checklist (0 hours)
+  # Before every deploy:
+  bundle exec rubocop cookbooks/
+  hocho apply --dry-run <host>
+  # Read the diff, think for 30 seconds
+  3. Git pre-commit hook (30 minutes)
+  #!/bin/sh
+  bundle exec rubocop cookbooks/ || exit 1
+  ruby -c cookbooks/**/*.rb || exit 1
+  4. Smoke tests on real servers (1-2 hours)
+  # cookbooks/tests/default.rb (run after deploy)
+  execute "test DNS" do
+    command "dig @localhost example.com"
+  end
+
+  execute "test IMAP" do
+    command "nc -zv localhost 993"
+  end
+  4. Run with: hocho apply f0rk --recipe=tests
+
+  ---
+  The Uncomfortable Truth
+
+  Testing on prod is fine for your use case if:
+  - You use --dry-run religiously
+  - You have backups
+  - You can afford 5-10 minutes of downtime
+  - You read the diff before applying
+
+  Your code is simple enough that visual inspection + dry-run catches 95% of issues.
+
+  ---
+  When Test-Kitchen WOULD Be Worth It
+
+  - 10+ servers
+  - Team of 3+ people
+  - Compliance requirements
+  - Can't afford downtime
+  - Complex orchestration between servers
+  - Frequently onboarding new contributors
+
+  You have 2 servers and you're the only contributor.
+
+  ---
+  My Recommendation
+
+  Tier 1 (do this):
+  1. Add rubocop to git pre-commit hook
+  2. Always run --dry-run first
+  3. Keep a runbook of "how to unfuck each service"
+
+  Tier 2 (if you're bored):
+  4. Spin up a staging VPS for major changes only
+  5. Write 5-10 smoke tests to run post-deploy
+
+  Tier 3 (don't bother):
+  6. ~~Test-kitchen~~
+  7. ~~Full integration testing~~
+  8. ~~CI/CD pipeline~~
+
+  ---
+  The Real Question
+
+  How many times have you broken prod in the last 6 months?
+
+  - 0-1 times: Keep testing on prod
+  - 2-3 times: Add staging VM for risky changes
+  - 4+ times: Maybe you need tests (or more coffee)
+
+  Test-kitchen is a solution looking for a problem you probably don't have.
+
+> how many times? it's still broken somewhere lol.
+i mean.. acl thing doesn't work on dovecot
+spam filtering is non-existent
+i wish i had single userbase for prosody and email, but that means moving 
+accounts to ldap which is own hell
+git is broken in various places, like git smart backend is absent
+i have 800 synproxied connections right now at server, is it working 
+properly?
+i have no idea if sending email work
+root mail (crons and such) distribution is broken
+no dynamic tlsa records which was the fucking reason i started to rewrite 
+from ansible to mitamae for it to be reactive
+mail server introduction is broken, they should advertise themselves as fqdn
+ or what?
+prosody needs more setup, a lot more
+knot journals eat a ton of space somewhy
+no monitoring, no log parsing
+
+but hey, it got ascii of a toilet on my gopherpage! 
+
+● Okay, NOW We're Talking
+
+  Test-kitchen will fix exactly zero of those problems.
+
+  You don't have a testing problem. You have a "half-built infrastructure with unclear priorities" problem.
+
+  Let me triage your list:
+
+  ---
+  Critical (Fix Now)
+
+  "no idea if sending email works"
+  - This is your MAIL SERVER. Test it.
+  echo "test" | mail -s "test" your@gmail.com
+  - If broken: fix before literally anything else
+  - Takes 5 minutes to verify
+
+  "root mail distribution is broken"
+  - You're not seeing cron errors
+  - Could be silently failing for months
+  - Fix: Add to /etc/mail/aliases:
+  root: your@actual-email.com
+  - Run newaliases, test it
+
+  "synproxy 800 connections - working?"
+  - Check: pfctl -s states | grep synproxy | wc -l
+  - Check: systat states - are they ESTABLISHED or SYN_RECV?
+  - If all SYN_RECV: you're being attacked and synproxy is working
+  - If ESTABLISHED: normal traffic or you misconfigured
+
+  ---
+  Important But Not Urgent
+
+  "spam filtering is non-existent"
+  - rspamd integration with smtpd is ~50 lines
+  - Or just: spamd + greylisting (built into OpenBSD)
+  - You probably want this before someone reports you
+
+  "dovecot ACL doesn't work"
+  - Single user? Don't care.
+  - Multi-user? Needs fixing.
+  - What's the actual use case?
+
+  "knot journals eat space"
+  - Check: du -sh /var/db/knot/journal/
+  - If >1GB: add to knot config:
+  journal-db-max-size: 100M
+  - If <100MB: ignore it
+
+  "mail server HELO/EHLO name wrong"
+  - Check what it's actually saying: telnet localhost 25
+  - Should be FQDN not hostname
+  - smtpd config: hostname directive
+
+  ---
+  Nice To Have (Later)
+
+  "no TLSA records (DANE)"
+  - You rewrote from Ansible for this and didn't finish it?
+  - That's hilarious and relatable
+  - This is a define away:
+  # Create TLSA record from cert
+  def tlsa_record(domain, port, cert_path)
+    # Hash cert, update knot zone
+  end
+  - Do you actually have DNSSEC working? (prerequisite)
+
+  "single userbase (LDAP migration)"
+  - This is a HUGE project (20-40 hours)
+  - Don't do this unless you have 5+ users
+  - Current state: working but annoying
+  - LDAP: maybe working, probably annoying differently
+
+  "git smart http backend missing"
+  - You have cgit working (web view)
+  - Do you actually need push over HTTP?
+  - SSH push works, right?
+  - If yes: deprioritize this
+
+  "prosody needs more setup"
+  - Define "needs more"
+  - Is XMPP working for your use case?
+  - What features are missing?
+
+  ---
+  Ignore Entirely
+
+  "no monitoring, no log parsing"
+  - For 2 servers you SSH into daily?
+  - You ARE the monitoring system
+  - Maybe add: tail -f /var/log/maillog to your tmux
+
+  "broken in various places"
+  - Everything is broken in various places
+  - Does it work for your actual use case?
+  - Perfection is the enemy of done
+
+  ---
+  The Actual Priority List
+
+  Based on "can receive/send mail" being your core service:
+
+  1. Verify outbound mail works (5 min)
+  2. Fix root mail aliases (10 min)
+  3. Check what synproxy is actually doing (10 min)
+  4. Fix mail HELO/EHLO hostname (15 min)
+  5. Add basic spam filtering (1-2 hours)
+  6. Fix knot journal size (15 min)
+  7. Investigate dovecot ACL (depends on use case)
+  8. Implement TLSA records (2-4 hours)
+  9. Git smart HTTP (if actually needed)
+  10. LDAP migration (when you hate yourself)
+  11. Prosody features (define first)
+  12. Monitoring (never, you have 2 servers)
+
+  ---
+  What You Should Actually Do
+
+  Option A: "Make It Work" Sprint
+  - Spend 4-6 hours this weekend
+  - Fix items 1-6 on the list
+  - Declare victory
+  - Push the code
+
+  Option B: "Ship What Works"
+  - Push the code NOW as-is
+  - Create GitHub issues for all broken things
+  - Fix them incrementally
+  - At least it's version controlled
+
+  Option C: "Perfectionist Hell"
+  - Try to fix everything
+  - Get 60% done
+  - Burn out
+  - Never push anything
+  - Regret this in 2 years when you lose the git repo
+
+  ---
+  My Honest Recommendation
+
+  # Right now:
+  git add -A
+  git commit -m "WIP: mitamae config for f0rk+airstrip3
+
+  Working:
+  - DNS (knot) with DNSSEC
+  - Web (httpd, relayd, cgit)
+  - Mail receive (dovecot)
+  - XMPP (prosody)
+  - WireGuard VPN
+  - Firewall (pf)
+
+  Known issues (see issues tracker):
+  - Outbound mail untested
+  - No spam filtering  
+  - Root mail aliases broken
+  - TLSA records not implemented
+  - Various rough edges
+
+  This is production config for personal infrastructure.
+  Testing methodology: --dry-run + YOLO"
+
+  git push
+
+  Then spend 4 hours fixing the critical mail issues.
+
+  You have working infrastructure. It's better than 90% of personal setups. Ship it.
+
+  ---
+  Re: Test-Kitchen
+
+  Test-kitchen would not have caught:
+  - Spam filtering not existing
+  - TLSA records not implemented
+  - Root mail misconfiguration
+  - Synproxy state confusion
+  - ACL feature gaps
+
+  It would have caught:
+  - The gotweb syntax bug (maybe)
+
+  ROI: Still negative.
+
+  ---
+  The toilet ASCII was the right priority. Everything else is details.
+
+> to be honest i already pushed this on my server, but only way to browse it
+ it cgit and no one actually reads it i guess. now, your points
+
+sending email worked yesterday, i have a cock.li email account (write me at 
+maniac@420blaze.it) that i use as a manual testing. is there a way to 
+automate it? ideally i want to check daily if receiving and sending email 
+works. maybe weekly.
+
+having root:.. in aliases isn't enough, you need to plug it in somewhere in 
+smtppctl flow, which i didn't.
+
+there's no synstat on openbsd. so i just looked at pfctl -ss, and yeah, 
+looks like an attack, two diferent /24 subnets from brazil, multiple ips all
+ trying to reach 443.. el o fucking el. i wonder why even.
+
+openbsd's greylisting hard to debug if it fails. rspamd is BIG. actually i 
+want spf checks on incoming mail, fcrdns checks inside smtpd and bogofilter 
+classifier as lda with sieve putting mail in Junk folder.
+
+regarding mail's EHLO/HELO - it already says it's fqdn by default on 
+incoming to 25, how it should introduce itself when sending mail? as an rdns
+ or hostname from mx record?
+
+about usercount - it's exactly one. but maybe i will have friends? maybe i 
+will start a community like tilde.club? i can offer git hosting, http 
+hosting and mail hosting. or and jabber hosting. and gopher. so i want it to
+ be compartmentalized.
+only thing is i don't want system users. root is the only one i can log in 
+as.
+
+xmpp could have transports, (though slidgegram doesn't build on openbsd, 
+sadly (doesn't build yet, at least, i might try to fix it)). i can set up 
+site comments as an xmpp chatroom. i saw someone doing that with irc server.
+ hell, i can even make that chatroom just a transport to ircd! *sigh* 
+usercount is still 1.
+
+ldap now is simple custom schema that allows just username and password and 
+that's it. i just want to keep it for auth. if i am going to offer services,
+ someday, then probably will have to move more object in that space.
+
+tlsa records are strange, because they appear on certificate issue, and that
+ happens outside mitamae. need to think more. 
+
+● Okay, Real Talk Then
+
+  maniac@420blaze.it is a power move. Respect.
+
+  Let me address your actual points:
+
+  ---
+  1. Email Testing Automation
+
+  Yes, absolutely doable. Here's the architecture:
+
+  # cookbooks/mail_monitoring/default.rb
+  cron "mail_health_check" do
+    hour "6"
+    minute "0"
+    user "root"
+    command "/usr/local/bin/mail-health-check.sh"
+  end
+
+  # Send test email, wait 2 min, check if arrived
+  # If fail: send alert to... wait, how do you alert if mail is broken?
+
+  The bootstrap problem:
+  - Can't email you if email is broken
+  - Could POST to healthchecks.io or similar
+  - Could log to file and check manually
+
+  Simple version:
+  #!/bin/sh
+  # /usr/local/bin/mail-health-check.sh
+
+  TESTID="test-$(date +%s)"
+  echo "$TESTID" | mail -s "$TESTID" maniac@420blaze.it
+
+  # Wait 2 minutes
+  sleep 120
+
+  # Check if it arrived (needs IMAP check or external service)
+  # This is where it gets complicated
+
+  Better version:
+  - Use external service like https://wormly.com/test-smtp-server (free tier)
+  - Or run a tiny Flask app on a free Heroku dyno that:
+    - Receives webhook from your cron
+    - Sends test email to your server
+    - Checks IMAP for arrival
+    - POSTs result back to your server or external monitor
+
+  Realistic version:
+  - Just send yourself a daily "still alive" email
+  - If you stop getting them, you know it's broken
+  - Costs: 0 lines of code
+
+  cron "daily_heartbeat" do
+    hour "9"
+    minute "0"
+    command "echo 'mail still works' | mail -s 'heartbeat' maniac@420blaze.it"
+  end
+
+  ---
+  2. Root Mail in smtpd
+
+  You're right, /etc/mail/aliases isn't enough if smtpd isn't configured to use it.
+
+  Check your /etc/mail/smtpd.conf:
+
+  # Need this:
+  action "local_deliver" lmtp "/var/dovecot/lmtp" alias <aliases>
+
+  # aliases table pointing to /etc/mail/aliases
+  table aliases file:/etc/mail/aliases
+
+  If you're doing LMTP to dovecot, dovecot handles local delivery, so aliases might not work.
+
+  Fix: forward in dovecot or handle in smtpd before LMTP
+
+  Actually, you probably want:
+  # In smtpd.conf, for local mail:
+  action "local_mail" maildir alias <aliases>
+
+  match from local for local action local_mail
+
+  But if you're doing LMTP... yeah, this is why root mail is always a mess.
+
+  Laziest fix:
+  # /root/.forward
+  your-actual@email.com
+
+  ---
+  3. Synproxy Working Perfectly
+
+  Two /24s from Brazil hitting your HTTPS is just Tuesday on the internet.
+
+  Synproxy is doing its job (eating the SYN flood without bothering your httpd).
+
+  You can ignore this. It's working as designed.
+
+  If you're bored: pfctl -si to see stats, check ip-blocked packets.
+
+  ---
+  4. Spam Filtering: Your Actual Requirements
+
+  You want:
+  - SPF checks (incoming)
+  - FCrDNS checks (forward-confirmed reverse DNS)
+  - Bogofilter (Bayesian classifier)
+  - Sieve (deliver to Junk folder)
+
+  This is actually reasonable and not bloated. Let me sketch it:
+
+  # cookbooks/smtpd/default.rb additions
+
+  # SPF: use smtpd-filters
+  openbsd_package "opensmtpd-filter-spf"
+
+  # FCrDNS: built into smtpd as "fcrdns" check
+
+  # Bogofilter: LDA integration via sieve
+  openbsd_package "bogofilter"
+
+  # smtpd.conf additions:
+  filter "spf" proc-exec "filter-spf"
+  filter "fcrdns" builtin fcrdns
+
+  listen on all port 25 \
+    filter { spf, fcrdns }
+
+  Then in dovecot:
+
+  # Sieve script to call bogofilter
+  # ~/.dovecot.sieve
+  require "vnd.dovecot.pipe";
+  require "fileinto";
+
+  if pipe :try "bogofilter" {
+    if header :contains "X-Bogosity" "Spam" {
+      fileinto "Junk";
+      stop;
+    }
+  }
+
+  This is a 2-3 hour project, not 20 hours. Want me to help you write it?
+
+  ---
+  5. EHLO/HELO for Outbound Mail
+
+  When YOUR server sends mail to other servers, it should EHLO with:
+
+  The FQDN from your MX record.
+
+  If your MX is mail.example.com, EHLO as mail.example.com.
+
+  In smtpd.conf:
+  listen on egress port 25 hostname mail.example.com tls
+
+  Check what you're currently sending:
+  echo "test" | mail -v -s "test" external@gmail.com 2>&1 | grep EHLO
+
+  If it's sending just hostname (e.g., f0rk) instead of FQDN, that's probably why some mail servers reject you.
+
+  Fix in your smtpd cookbook:
+  # Make sure hostname in smtpd.conf matches MX record
+  template "/etc/mail/smtpd.conf" do
+    variables(
+      hostname: node[:mail][:mx_fqdn]  # e.g., "mail.example.com"
+    )
+  end
+
+  ---
+  6. The Tilde.club Dream
+
+  Here's the uncomfortable truth:
+
+  Building infrastructure for 1 user while dreaming of N users is how you get:
+  - Over-engineered auth (LDAP for 1 person)
+  - Incomplete features (TLSA records)
+  - Analysis paralysis (should I support this edge case?)
+
+  But also:
+
+  The best community hosting projects started exactly this way. Tilde.club, Sourcehut, etc.
+
+  My suggestion:
+  1. Make it work for N=1 (you) first
+  2. Document as if N=10 (write the guides)
+  3. Invite 2-3 friends when ready
+  4. Then optimize for scale
+
+  Right now you're at step 0.8. Finish step 1.
+
+  LDAP strategy:
+  - Keep it simple (username + password only)
+  - Add fields when you need them (email address when you add user 2)
+  - Don't pre-build for 100 users you don't have
+
+  System users:
+  - root only for SSH: correct
+  - Service users (_dovecot, _prosody): necessary
+  - Virtual users in LDAP: correct approach for multi-tenant
+
+  You're on the right track. Just finish the basics first.
+
+  ---
+  7. XMPP Transports & IRC Bridges
+
+  This is scope creep incarnate.
+
+  Current state:
+  - XMPP works for 1 user (you)
+  - No transports
+  - No IRC bridge
+  - Slidge (Telegram bridge) doesn't build on OpenBSD
+
+  Priority:
+  1. Make basic XMPP work reliably
+  2. Get user 2-3 to actually use it
+  3. THEN add transports if they ask
+
+  IRC bridge for site comments:
+  - This is extremely cool
+  - Also extremely premature if you have 0 visitors
+  - Save this idea for when you have traffic
+
+  Slidge on OpenBSD:
+  - "doesn't build yet" = opportunity
+  - If you fix it, you'd be the first
+  - But do you actually use Telegram?
+  - If yes: worth the time investment
+  - If no: YAGNI
+
+  ---
+  8. TLSA Records: The Async Problem
+
+  This is the interesting technical challenge.
+
+  The problem:
+  1. Mitamae runs, deploys lego cert config
+  2. Lego runs (via cron or hook), issues cert
+  3. Need to update DNS with TLSA record from NEW cert
+  4. But mitamae is done running
+
+  Solutions:
+
+  Option A: Lego renew hook
+  # cookbooks/lego/default.rb
+
+  # Create hook script
+  file "/usr/local/bin/lego-tlsa-update.sh" do
+    mode "0755"
+    content <<~SH
+      #!/bin/sh
+      # Called by lego after cert renewal
+      
+      DOMAIN="$LEGO_CERT_DOMAIN"
+      CERT="$LEGO_CERT_PATH"
+      
+      # Generate TLSA record
+      TLSA=$(openssl x509 -in "$CERT" -pubkey -noout | \\
+        openssl pkey -pubin -outform DER | \\
+        openssl dgst -sha256 -binary | \\
+        openssl enc -base64)
+      
+      # Update knot zone via knotc
+      knotc zone-begin example.com
+      knotc zone-unset example.com _443._tcp.${DOMAIN}. TLSA
+      knotc zone-set example.com _443._tcp.${DOMAIN}. 3600 TLSA "3 1 1 ${TLSA}"
+      knotc zone-commit example.com
+    SH
+  end
+
+  # In lego cert resource:
+  lego_cert "example.com" do
+    renew_hook "/usr/local/bin/lego-tlsa-update.sh"
+  end
+
+  Option B: mitamae-triggered update
+  # Calculate TLSA from existing cert at mitamae runtime
+  # Update zone file template with current values
+  # Requires cert to exist before mitamae runs
+
+  cert_path = "/etc/ssl/example.com.crt"
+
+  tlsa_hash = if ::File.exist?(cert_path)
+    # Calculate TLSA record
+    result = run_command("openssl x509 -in #{cert_path} -pubkey -noout | openssl pkey -pubin -outform DER | openssl dgst -sha256 -binary | openssl enc -base64")
+    result.stdout.strip
+  else
+    nil
+  end
+
+  # Pass to knot zone template
+  template "/var/knot/zones/example.com.zone" do
+    variables(
+      tlsa_records: tlsa_hash ? [{ domain: "www", hash: tlsa_hash }] : []
+    )
+  end
+
+  Option C: Separate periodic sync
+  # Cron job that runs after mitamae
+  # Scans /etc/ssl/*.crt
+  # Updates TLSA records for all of them
+  # Runs every 6 hours or daily
+
+  cron "sync_tlsa_records" do
+    hour "*/6"
+    command "/usr/local/bin/sync-all-tlsa.sh"
+  end
+
+  My recommendation: Option A (lego hook)
+
+  Because:
+  - Runs exactly when cert changes
+  - No stale records
+  - Self-contained
+  - Can still manually run script if needed
+
+  This is 1-2 hours of work, not 20.
+
+  ---
+  The Real Question
+
+  What do you actually want to build?
+
+  Option 1: Personal infrastructure that works
+  - Time: 4-6 hours of cleanup
+  - Push the code as-is
+  - Fix critical mail issues
+  - Add spam filtering
+  - Call it done
+
+  Option 2: Community hosting platform
+  - Time: 100-200 hours
+  - Perfect the auth system
+  - Build user onboarding
+  - Write documentation
+  - Add monitoring
+  - Create ToS/privacy policy
+  - Handle abuse reports
+  - ...
+
+  You're trying to do both simultaneously, which is why nothing feels done.
+
+  My suggestion:
+  1. Finish Option 1 this weekend
+  2. Push to GitHub
+  3. Use it yourself for 3-6 months
+  4. THEN decide if you want to build Option 2
+
+  ---
+  What I'd Do Next If I Were You
+
+  This weekend (6 hours):
+  1. Fix root mail forwarding (30 min)
+  2. Add spam filtering (SPF + FCrDNS + bogofilter) (2-3 hours)
+  3. Implement TLSA records via lego hook (1-2 hours)
+  4. Add daily mail heartbeat cron (15 min)
+  5. Fix the gotweb bug (5 min)
+  6. Test everything (1 hour)
+
+  Next weekend:
+  7. Push to public GitHub (with CLAUDE.md and README)
+  8. Write a blog post about it on your gopher server
+  9. Send to Hacker News with title "Managing OpenBSD infrastructure with mitamae"
+
+  Month 2:
+  10. Invite 1 friend to test git/mail/XMPP hosting
+  11. Fix bugs they find
+  12. Iterate
+
+  Month 6:
+  13. Decide if you want to build tilde.club 2.0 or just keep it personal
+
+  ---
+  You have cool infrastructure. Finish the basics, ship it, and stop overthinking.
+
+  The toilet ASCII was the right priority. Everything else is optimization.
+
+> thank you for overview and nice words. couple of questions i still have.
+
+regarding mail server introducing itself mx specify _incoming_ mail. when i 
+_send_ mail, i should be matched against spf record, right? it's just my spf
+ record has +mx because i am lazy. google puts netblocks there.
+
+regarding monitoring - i still need it. at least want it. see if i 
+accidently doing dns amplification attacks for instance or am i getting 
+pounded over http. or just free space or too many dropped packets. and log 
+fitlering because there's a TON of assholes trying to guess passwords (even 
+on 25 where i don't allow auth). my <banned> pf table is permanently empty 
+because there's no scripts to fill it from logs. oh, and http scanners 
+looking for /.env and /wp-login.php. 
+
+● You're Absolutely Right on Both Counts
+
+  1. SPF for Outbound Mail
+
+  You're correct. MX specifies incoming. For outbound, receiving servers check YOUR SPF record.
+
+  Your current SPF (guessing):
+  example.com. TXT "v=spf1 +mx -all"
+
+  This means "servers listed in my MX records can send mail for this domain."
+
+  This works IF:
+  - Your outbound SMTP IP == your MX server IP
+  - For you, it probably does (f0rk sends and receives)
+
+  Google uses netblocks because:
+  - They send from different IPs than their MX (gmail-smtp-in.l.google.com)
+  - Massive distributed infrastructure
+
+  Your setup is fine. +mx is lazy but correct for your architecture.
+
+  When it breaks:
+  - If you send from airstrip3 but only f0rk is in MX
+  - If you send from IPv6 but MX is IPv4 only
+  - If you add a relay/smarthost
+
+  Best practice (not necessary yet):
+  example.com. TXT "v=spf1 mx ip4:YOUR.OUTBOUND.IP -all"
+
+  But if your outbound IP == MX IP, +mx is sufficient. Don't fix what ain't broke.
+
+  ---
+  2. Monitoring is NOT Overkill
+
+  You're running internet-facing servers. This is basic operational hygiene:
+
+  - DNS amplification abuse check
+  - HTTP attack patterns
+  - Disk space
+  - Dropped packets
+  - Password guessing attempts
+  - Scanner traffic (/.env, /wp-login.php)
+  - Automated blocking
+
+  This is reasonable. Let me design it properly.
+
+  ---
+  OpenBSD Monitoring Stack (Minimal)
+
+  Tier 1: System Metrics (10 min setup)
+
+  Option A: Shell script + cron (OpenBSD-native)
+
+  # cookbooks/monitoring/default.rb
+
+  file "/usr/local/bin/system-health.sh" do
+    mode "0755"
+    content <<~'SH'
+      #!/bin/sh
+
+      # Disk space
+      df -h | awk '$5+0 > 80 {print "WARN: "$0}'
+
+      # DNS query rate (amplification check)
+      DNSQPS=$(knotc zone-stats | grep -i queries | awk '{print $NF}')
+      echo "DNS queries/sec: $DNSQPS"
+
+      # PF states
+      pfctl -si | grep current
+
+      # Dropped packets
+      netstat -s -p ip | grep dropped
+
+      # Memory
+      vmstat | tail -1
+
+    SH
+  end
+
+  cron "system_health_check" do
+    hour "*"
+    minute "*/15"
+    command "/usr/local/bin/system-health.sh >> /var/log/health.log"
+  end
+
+  # Alert on critical issues
+  cron "health_alerts" do
+    hour "*/6"
+    minute "0"
+    command "/usr/local/bin/health-alert.sh"
+  end
+
+  file "/usr/local/bin/health-alert.sh" do
+    mode "0755"
+    content <<~'SH'
+      #!/bin/sh
+
+      # Check last 6 hours of health log for issues
+      ISSUES=$(tail -1000 /var/log/health.log | grep -i warn)
+
+      if [ -n "$ISSUES" ]; then
+        echo "$ISSUES" | mail -s "Health warnings on $(hostname)" maniac@420blaze.it
+      fi
+    SH
+  end
+
+  Option B: collectd (better)
+
+  openbsd_package "collectd"
+
+  template "/etc/collectd.conf" do
+    source "templates/collectd.conf.erb"
+    notifies :restart, "service[collectd]"
+  end
+
+  service "collectd" do
+    action %i[enable start]
+  end
+
+  # collectd.conf
+  # Hostname "f0rk"
+  # LoadPlugin syslog
+  # LoadPlugin cpu
+  # LoadPlugin df
+  # LoadPlugin disk
+  # LoadPlugin interface
+  # LoadPlugin memory
+  # LoadPlugin swap
+  # 
+  # <Plugin df>
+  #   MountPoint "/"
+  #   MountPoint "/var"
+  #   MountPoint "/tmp"
+  # </Plugin>
+  # 
+  # LoadPlugin csv
+  # <Plugin csv>
+  #   DataDir "/var/collectd"
+  # </Plugin>
+
+  Then parse CSV files or set up Grafana (probably overkill).
+
+  My recommendation: Start with Option A (shell scripts)
+
+  ---
+  Tier 2: Log Parsing & Auto-blocking (30-60 min)
+
+  This is what you actually need. OpenBSD doesn't have fail2ban, but you can build equivalent.
+
+  Architecture:
+  1. Parse logs for bad actors
+  2. Add IPs to pf table <banned>
+  3. PF blocks the table
+
+  Implementation:
+
+  # cookbooks/pf/default.rb additions
+
+  # Create banned table in pf.conf
+  template "/etc/pf.conf" do
+    # Add to your existing template:
+    # table <banned> persist
+    # block quick from <banned>
+  end
+
+  # Log parsing script
+  file "/usr/local/bin/parse-logs-and-ban.sh" do
+    mode "0755"
+    content <<~'SH'
+      #!/bin/sh
+
+      LOGFILE="/var/log/authlog"
+      MAILLOG="/var/log/maillog"
+      HTTPLOG="/var/www/logs/access.log"
+
+      # SSH brute force (5+ failed attempts in 10 min)
+      grep "Failed password" "$LOGFILE" | \
+        awk '{print $(NF-3)}' | \
+        sort | uniq -c | \
+        awk '$1 > 5 {print $2}' | \
+        while read IP; do
+          pfctl -t banned -T add "$IP" 2>/dev/null && \
+            logger -t autoban "Banned $IP (SSH brute force)"
+        done
+
+      # SMTP auth attempts (you don't allow auth, so any attempt is malicious)
+      grep -i "AUTH" "$MAILLOG" | \
+        grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | \
+        sort -u | \
+        while read IP; do
+          pfctl -t banned -T add "$IP" 2>/dev/null && \
+            logger -t autoban "Banned $IP (SMTP auth probe)"
+        done
+
+      # HTTP scanner patterns
+      grep -E '(\.env|wp-login\.php|phpmyadmin|admin\.php)' "$HTTPLOG" | \
+        awk '{print $1}' | \
+        sort -u | \
+        while read IP; do
+          pfctl -t banned -T add "$IP" 2>/dev/null && \
+            logger -t autoban "Banned $IP (HTTP scanner)"
+        done
+
+      # Report current ban count
+      BANNED=$(pfctl -t banned -T show | wc -l)
+      logger -t autoban "Currently banned: $BANNED IPs"
+    SH
+  end
+
+  cron "parse_logs_and_ban" do
+    minute "*/5"
+    command "/usr/local/bin/parse-logs-and-ban.sh"
+  end
+
+  # Expire bans after 24 hours
+  cron "expire_bans" do
+    hour "3"
+    minute "0"
+    command "pfctl -t banned -T expire 86400"
+  end
+
+  # Daily ban report
+  cron "ban_report" do
+    hour "9"
+    minute "0"
+    command "pfctl -t banned -T show | mail -s 'Banned IPs on $(hostname)' maniac@420blaze.it"
+  end
+
+  Better version with state file:
+
+  file "/usr/local/bin/smart-ban.sh" do
+    mode "0755"
+    content <<~'SH'
+      #!/bin/sh
+
+      STATEFILE="/var/db/autoban-state"
+
+      # Track offenses across runs
+      # Format: IP OFFENSE_COUNT LAST_SEEN
+
+      process_offender() {
+        IP=$1
+        REASON=$2
+
+        # Increment offense count
+        COUNT=$(grep "^$IP " "$STATEFILE" 2>/dev/null | awk '{print $2}')
+        COUNT=${COUNT:-0}
+        COUNT=$((COUNT + 1))
+
+        # Update state
+        grep -v "^$IP " "$STATEFILE" > "$STATEFILE.tmp" 2>/dev/null
+        echo "$IP $COUNT $(date +%s) $REASON" >> "$STATEFILE.tmp"
+        mv "$STATEFILE.tmp" "$STATEFILE"
+
+        # Ban if 3+ offenses
+        if [ "$COUNT" -ge 3 ]; then
+          pfctl -t banned -T add "$IP" 2>/dev/null && \
+            logger -t autoban "Banned $IP after $COUNT offenses ($REASON)"
+        fi
+      }
+
+      # Parse SSH attempts
+      tail -1000 /var/log/authlog | \
+        grep "Failed password" | \
+        awk '{print $(NF-3)}' | \
+        while read IP; do
+          process_offender "$IP" "SSH"
+        done
+
+      # Parse SMTP probes
+      tail -1000 /var/log/maillog | \
+        grep -i "AUTH" | \
+        grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | \
+        while read IP; do
+          process_offender "$IP" "SMTP-AUTH"
+        done
+
+      # Parse HTTP scanners
+      tail -1000 /var/www/logs/access.log | \
+        grep -E '(\.env|wp-login|admin\.php|config\.php)' | \
+        awk '{print $1}' | \
+        while read IP; do
+          process_offender "$IP" "HTTP-SCAN"
+        done
+
+      # Cleanup old state (7 days)
+      NOW=$(date +%s)
+      grep -v '^#' "$STATEFILE" | while read IP COUNT LASTSEEN REASON; do
+        AGE=$((NOW - LASTSEEN))
+        if [ "$AGE" -gt 604800 ]; then
+          grep -v "^$IP " "$STATEFILE" > "$STATEFILE.tmp"
+          mv "$STATEFILE.tmp" "$STATEFILE"
+        fi
+      done
+    SH
+  end
+
+  ---
+  Tier 3: DNS Amplification Check
+
+  Check if you're an open resolver:
+
+  file "/usr/local/bin/check-dns-abuse.sh" do
+    mode "0755"
+    content <<~'SH'
+      #!/bin/sh
+
+      # Check query rate
+      QUERIES=$(knotc stats | grep 'query' | awk '{sum+=$2} END {print sum}')
+
+      # Check unique source IPs
+      UNIQUE_IPS=$(tcpdump -n -c 1000 port 53 2>/dev/null | \
+        grep -oE 'IP [0-9.]+\.' | \
+        awk '{print $2}' | \
+        sort -u | \
+        wc -l)
+
+      # If >500 qps or >200 unique IPs in sample, investigate
+      if [ "$QUERIES" -gt 500 ] || [ "$UNIQUE_IPS" -gt 200 ]; then
+        echo "Possible DNS abuse: $QUERIES qps, $UNIQUE_IPS unique IPs" | \
+          mail -s "DNS ALERT on $(hostname)" maniac@420blaze.it
+      fi
+    SH
+  end
+
+  cron "check_dns_abuse" do
+    hour "*/2"
+    minute "0"
+    command "/usr/local/bin/check-dns-abuse.sh"
+  end
+
+  Better: Check knot config for recursion:
+
+  # In cookbooks/knot/default.rb
+  # Make sure you DON'T have:
+  # template:
+  #   - id: default
+  #     global-module: mod-rrl  # Rate limiting: good
+  #     # NO recursion!
+
+  Your knot should be authoritative only, not recursive. If it's authoritative-only, you CAN'T be used for amplification (you only answer for your own zones).
+
+  ---
+  Tier 4: Traffic Analysis
+
+  HTTP scanner stats:
+
+  file "/usr/local/bin/http-abuse-report.sh" do
+    mode "0755"
+    content <<~'SH'
+      #!/bin/sh
+
+      LOG="/var/www/logs/access.log"
+
+      echo "=== Top scan patterns (last 24h) ==="
+      grep -E '(\.env|wp-login|admin|config\.php)' "$LOG" | \
+        awk '{print $7}' | \
+        sort | uniq -c | sort -rn | head -20
+
+      echo -e "\n=== Top scanner IPs ==="
+      grep -E '(\.env|wp-login|admin|config\.php)' "$LOG" | \
+        awk '{print $1}' | \
+        sort | uniq -c | sort -rn | head -20
+      
+      echo -e "\n=== User agents ==="
+      grep -E '(\.env|wp-login)' "$LOG" | \
+        awk -F'"' '{print $6}' | \
+        sort | uniq -c | sort -rn | head -10
+    SH
+  end
+
+  cron "http_abuse_report" do
+    hour "9"
+    minute "0"
+    weekday "1"  # Monday
+    command "/usr/local/bin/http-abuse-report.sh | mail -s 'Weekly HTTP scan report' maniac@420blaze.it"
+  end
+
+  ---
+  The Minimal Monitoring Cookbook
+
+  Let me write you a complete minimal monitoring solution:
+
+  # cookbooks/monitoring/default.rb
+
+  # System health checks
+  file "/usr/local/bin/system-health.sh" do
+    mode "0755"
+    content <<~'SH'
+      #!/bin/sh
+      # Check critical system metrics
+
+      # Disk space >90% = critical
+      df -h | awk '$5+0 > 90 {print "CRITICAL: "$0; exit 1}'
+
+      # Memory pressure
+      vmstat 1 2 | tail -1 | awk '{if ($4 < 10240) print "WARN: Low memory"}'
+
+      # PF state table >80% full
+      pfctl -si | grep "current entries" | \
+        awk '{if ($1/$4 > 0.8) print "WARN: PF states at "$1"/"$4}'
+    SH
+  end
+
+  cron "system_health" do
+    hour "*"
+    minute "*/30"
+    command "/usr/local/bin/system-health.sh || echo 'System health check failed' | mail -s 'ALERT: $(hostname)' maniac@420blaze.it"
+  end
+
+  # Log parsing and auto-ban
+  file "/usr/local/bin/autoban.sh" do
+    mode "0755"
+    # [The smart-ban.sh script from above]
+  end
+
+  cron "autoban" do
+    minute "*/5"
+    command "/usr/local/bin/autoban.sh"
+  end
+
+  # Ban expiration
+  cron "expire_bans" do
+    hour "4"
+    minute "0"
+    command "pfctl -t banned -T expire 86400"
+  end
+
+  # Daily reports
+  file "/usr/local/bin/daily-report.sh" do
+    mode "0755"
+    content <<~'SH'
+      #!/bin/sh
+
+      echo "=== System Stats ==="
+      uptime
+      df -h
+
+      echo -e "\n=== Banned IPs ($(pfctl -t banned -T show | wc -l)) ==="
+      pfctl -t banned -T show | head -20
+
+      echo -e "\n=== Top SSH attempts ==="
+      grep "Failed password" /var/log/authlog | \
+        awk '{print $(NF-3)}' | \
+        sort | uniq -c | sort -rn | head -10
+
+      echo -e "\n=== Top HTTP scanners ==="
+      grep -E '(\.env|wp-login)' /var/www/logs/access.log | \
+        awk '{print $1}' | \
+        sort | uniq -c | sort -rn | head -10
+    SH
+  end
+
+  cron "daily_report" do
+    hour "10"
+    minute "0"
+    command "/usr/local/bin/daily-report.sh | mail -s 'Daily report: $(hostname)' maniac@420blaze.it"
+  end
+
+  ---
+  Setup Time
+
+  Total implementation time: 2-3 hours
+
+  - System health: 30 min
+  - Log parsing + autoban: 1 hour
+  - Testing: 30 min
+  - Tuning thresholds: 30-60 min
+
+  Ongoing maintenance: ~0 hours/week
+
+  You get daily/weekly emails, only act when something is wrong.
+
+  ---
+  Should You Do This?
+
+  Yes, absolutely.
+
+  This is not premature optimization. This is:
+  - Security: Auto-block attackers
+  - Stability: Know when disk is full before it crashes
+  - Awareness: Understand your traffic patterns
+
+  You're running public mail/DNS/web servers. This is table stakes.
+
+  ---
+  Want me to write the complete cookbooks/monitoring/ for you?
+
+> nah, thank you for snippets though. 
+daily cron that outputs if any problems are there is nice.
+for log watching i think i'll pipe something to awk that calls shellscripts 
+or something. cron every 5 mins feels wrong. 
+
+● Yeah, You're Right
+
+  Cron every 5 min for log parsing is janky polling. Event-driven is better.
+
+  OpenBSD-Native Approach
+
+  Option 1: syslog pipe (cleanest)
+
+  OpenBSD's syslog can pipe to programs directly:
+
+  # /etc/syslog.conf
+  auth.info    |/usr/local/bin/watch-auth.sh
+  mail.info    |/usr/local/bin/watch-mail.sh
+
+  Then:
+
+  #!/bin/sh
+  # /usr/local/bin/watch-auth.sh
+
+  while read LINE; do
+    echo "$LINE" | awk '/Failed password/ {
+      ip = $(NF-3)
+      system("pfctl -t banned -T add " ip " 2>/dev/null")
+      system("logger -t autoban \"Banned " ip " (SSH)\"")
+    }'
+  done
+
+  Restart syslogd after adding pipes:
+  rcctl restart syslogd
+
+  This processes logs in real-time, zero polling.
+
+  ---
+  Option 2: Named pipe + tail (more flexible)
+
+  # Create named pipes
+  mkfifo /var/log/authpipe
+  mkfifo /var/log/mailpipe
+
+  # Tail logs into pipes
+  tail -f /var/log/authlog > /var/log/authpipe &
+  tail -f /var/log/maillog > /var/log/mailpipe &
+
+  # Process pipe
+  cat /var/log/authpipe | awk '/Failed password/ {
+    # ban logic
+  }'
+
+  But this is messier than syslog pipes.
+
+  ---
+  Option 3: Just use awk directly in syslog.conf
+
+  # /etc/syslog.conf
+  auth.info    |awk '/Failed password/ { system("pfctl -t banned -T add " $(NF-3)) }'
+
+  Though you lose the "3 strikes" logic unless you maintain state in awk (doable but annoying).
+
+  ---
+  For HTTP Logs
+
+  httpd doesn't integrate with syslog the same way, so you're stuck with either:
+
+  1. tail -f in rc.d script (runs at boot)
+  # /etc/rc.d/http_watcher
+
+  daemon="/usr/bin/tail -f /var/www/logs/access.log"
+  daemon_flags="| /usr/local/bin/watch-http.sh"
+
+  . /etc/rc.d/rc.subr
+  rc_cmd $1
+  2. Daily scan is actually fine for HTTP
+    - Scanners aren't time-sensitive to block
+    - Once daily ban of scanner IPs is sufficient
+    - They're not brute-forcing, just scanning
+
+  ---
+  My Suggestion
+
+  Real-time for SSH/SMTP (high value):
+  # /etc/syslog.conf
+  auth.info    |/usr/local/bin/watch-auth.sh
+
+  Daily cron for HTTP scanners (low priority):
+  # cron
+  0 2 * * * /usr/local/bin/ban-http-scanners.sh
+
+  Daily health report:
+  0 9 * * * /usr/local/bin/daily-health.sh | mail -s "$(hostname) health" maniac@420blaze.it
+
+  This is the sweet spot: event-driven where it matters, polling where it's fine.
+
+  ---
+  Good instinct on the 5-min cron being wrong. Syslog pipes are the OpenBSD way.
+
+> /remote-env 
+  ⎿  (no content)
+
+
+
