@@ -2,23 +2,6 @@
 	path = plugins/mitamae-plugin-resource-cron
 	url = https://github.com/itamae-plugins/mitamae-plugin-resource-cron
 
-[submodule "mitamae"]
-	path = misc/mitamae
-	url = git@the.main.b0x.pw:obsd-mitamae
-	branch = mitamae-src
-	shallow = true
-
-[submodule "notes"]
-	path = misc/notes
-	url = git@the.main.b0x.pw:obsd-mitamae
-	branch = notes
-	shallow = true
-[submodule "dist"]
-	path = misc/dist
-	url = git@the.main.b0x.pw:obsd-mitamae
-	branch = dist
-	shallow = true
-
 [submodule "example-ruby-infra"]
 	path = misc/examples/example-ruby-infra
 	url = https://github.com/ruby/ruby-infra-recipe
