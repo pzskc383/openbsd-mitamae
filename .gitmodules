@@ -14,3 +14,7 @@
 	path = misc/examples/sorah-cnw
 	url = https://github.com/sorah/cnw
 	shallow = true
+[submodule "mitamae"]
+	path = misc/mitamae
+	url = git@pzskc383.net:mitamae
+	branch = master
