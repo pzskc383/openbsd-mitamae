@@ -27,6 +27,8 @@ module Hocho
             YAML.load_file(filename, aliases: true)
           end
 
+        data = {} if data.nil?
+
         Hocho::Utils::Symbolize.keys_of(data)
       end
 
