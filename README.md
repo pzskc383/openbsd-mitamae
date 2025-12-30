@@ -111,14 +111,15 @@ only with pubkeys and only on distinguished port.
   - TODO: so far no custom configs, just deployed netboot.xyz on `x.` subdomain.
 - site\_box\_post
   - `post.b0x.pw` mail service langing page
-  - TODO: ascii art isn't a
+  - TODO: describe it
 - site\_box\_talk
   - `talk.b0x.pw` xmpp service langing page
-  - TODO: describe it
+  - TODO: describe it too
 - dickd
   - draws crude penis erection animation over telnet.
   - TODO: nothing. it's perfect.
-  - TOOD: investigate plugging it as `rdr-to` target for bad hosts to feed them ascii penises instead of real service data.
+  - TODO: investigate plugging it as `rdr-to` target for bad hosts to feed them ascii penises instead of real service data.
+  - TODO: also, plug as a shell in sshd
 - gopher
   - a very simple gopher serving page.
 - openbsd\_com0

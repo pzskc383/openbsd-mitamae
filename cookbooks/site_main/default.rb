@@ -13,10 +13,6 @@ end
 node[:httpd_config_files] << "main_pzskc383.conf"
 notify!("create@template[/etc/httpd.conf]")
 
-include_recipe "git.rb"
-include_recipe "cgit.rb"
-include_recipe "gotweb.rb"
-
 directory "/var/www/htdocs/pzskc383"
 
 %w[bg.png splash.png index.html robots.txt favicon.ico].each do |fname|
