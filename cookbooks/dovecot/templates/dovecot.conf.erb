@@ -1,0 +1,266 @@
+# 2.3.21.1 (d492236fa0): /etc/dovecot/dovecot.conf
+# Pigeonhole version 0.5.21.1 (49005e73)
+# OS: OpenBSD 7.8 arm64
+# Hostname: the.main.b0x.pw
+
+listen = <%= node[:network_setup][:v4][:address] %>,<%= node[:network_setup][:v6][:address] %>
+login_greeting = IMAP ready
+mail_debug = yes
+
+ssl_cert = </etc/ssl/fqdn.crt
+ssl_key = </etc/ssl/private/fqdn.key
+
+ssl_dh = </etc/ssl/dh-2048.pem
+ssl_min_protocol = TLSv1.2
+ssl_prefer_server_ciphers = yes
+
+mail_gid = vmail
+mail_uid = vmail
+mailbox_list_index = yes
+
+mail_plugins = "quota virtual"
+
+first_valid_uid = 2000
+last_valid_uid = 2000
+first_valid_gid = 2000
+last_valid_gid = 2000
+
+managesieve_notify_capability = mailto
+
+mmap_disable = yes
+verbose_proctitle = yes
+
+protocols = imap lmtp sieve
+
+mail_home = /var/vmail/%d/%n/data
+namespace {
+  mail_location = maildir:/var/vmail/%d/%n/mail:LAYOUT=fs:INBOX=/var/vmail/%d/%n/mail/INBOX:INDEX=~/index:CONTROL=~/control
+  inbox = yes
+  subscriptions = yes
+  separator = /
+  list = yes
+
+  mailbox Archive {
+    auto = subscribe
+    special_use = \Archive
+  }
+  mailbox Drafts {
+    auto = subscribe
+    special_use = \Drafts
+  }
+  mailbox Sent {
+    auto = subscribe
+    special_use = \Sent
+  }
+  mailbox Queue {
+    auto = create
+    special_use = \Sent
+  }
+  mailbox Spam {
+    auto = create
+    special_use = \Junk
+  }
+  mailbox Notes {
+    auto = subscribe
+  }
+  mailbox Trash {
+    auto = create
+    special_use = \Trash
+    # autoexpunge = 31 days
+  }
+}
+
+# namespace virt {
+#   prefix = virtual/
+#   separator = /
+#   list = yes
+#   inbox = no
+#   subscriptions = yes
+#   hidden = no
+#   location = virtual:/etc/dovecot/virtual_rules
+#   # location = virtual:/etc/dovecot/virtual_rules:INDEX=%h/virtual
+#
+#   mailbox All {
+#     special_use = \All
+#   }
+#
+#   mailbox Combined {
+#   }
+#
+#   mailbox Flagged {
+#     special_use = \Flagged
+#   }
+#
+#   mailbox Unseen {
+#   }
+# }
+
+
+
+auth_mechanisms = plain login
+auth_verbose = yes
+# auth_cache_size = 32M
+
+passdb {
+  driver = passwd-file
+  args = scheme=blf-crypt /etc/mail/passwd.dovecot
+}
+userdb {
+  driver = passwd-file
+  args = /etc/mail/passwd.dovecot
+  override_fields = uid=vmail gid=vmail
+}
+
+
+service auth {
+  name = auth
+  extra_groups = _mailpasswd
+  unix_listener auth-userdb {
+    group = vmail
+    mode = 0666
+    user = vmail
+    path = auth-userdb
+  }
+}
+
+service auth-worker {
+  extra_groups = _mailpasswd
+  user = $default_internal_user
+}
+
+service stats {
+  unix_listener stats-writer {
+    group = vmail
+    mode = 0660
+  }
+}
+
+
+protocol lmtp {
+  mail_plugins = "quota trash sieve"
+  info_log_path =
+  log_path =
+  syslog_facility = mail
+}
+service lmtp {
+  unix_listener lmtp {
+    mode = 0660
+    user =  vmail
+    group = vmail
+  }
+  executable = lmtp -L
+}
+
+protocol lda {
+  mail_plugins = "quota trash sieve"
+  debug_log_path = syslog
+  info_log_path = syslog
+  syslog_facility = mail
+}
+
+imap_capability = +SPECIAL-USE
+imap_idle_notify_interval = 4 mins
+imap_id_retain = yes
+
+protocol imap {
+  mail_plugins = "quota trash imap_quota imap_sieve"
+  imap_metadata = yes
+}
+
+service imap-login {
+  inet_listener imap {
+    port = 143
+  }
+  inet_listener imaps {
+    port = 0
+  }
+}
+
+protocol sieve {
+}
+
+service managesieve-login {
+  inet_listener sieve {
+    port = 4190
+  }
+}
+
+
+plugin {
+  quota_grace = 10%%
+
+  quota = count:User quota
+  quota_rule = *:storage=1G
+  quota_vsizes = yes
+}
+
+service bogofilter_classify {
+  executable = script /usr/local/share/dovecot/shell/bogofilter-classify.sh
+  unix_listener sieve-filter/bogofilter-classify {
+    mode = 0666
+  }
+}
+
+service bogofilter_train {
+  executable = script /usr/local/share/dovecot/shell/bogofilter-train.sh
+  unix_listener sieve-pipe/bogofilter-train {
+    mode = 0666
+  }
+}
+
+service quota-warning {
+  executable = script /usr/local/share/dovecot/shell/quota-warning.sh
+  unix_listener quota-warning {
+    mode = 0666
+  }
+}
+
+plugin {
+  fts_autoindex = yes
+  fts_autoindex_exclude = Spam, Trash, Queue
+
+  sieve = file:%h/sieve;active=%h/sieve.active
+  sieve_user_log = %h/sieve.log
+  sieve_plugins = sieve_imapsieve sieve_extprograms
+
+  sieve_global_extensions = +vnd.dovecot.pipe +vnd.dovecot.environment +vnd.dovecot.debug
+	sieve_extensions = +vnd.dovecot.filter +spamtest +spamtestplus +notify +imapflags
+  sieve_pipe_socket_dir = sieve-pipe
+  sieve_filter_socket_dir = sieve-filter
+
+	sieve_spamtest_status_type = score
+	sieve_spamtest_max_value = 1
+	sieve_spamtest_status_header = X-Bogosity: [[:alpha:]]+, tests=bogofilter, spamicity=([[:digit:]\.]+), version=[[:digit:]\.]+
+
+  sieve_before = /usr/local/share/dovecot/sieve/before
+  sieve_quota_max_storage = 1M
+
+  sieve_default = /usr/local/share/dovecot/sieve/default.sieve
+  sieve_default_name = "default filter"
+
+  sieve_global = /usr/local/share/dovecot/sieve/global
+
+  imapsieve_mailbox1_name = Spam
+  imapsieve_mailbox1_causes = COPY
+  imapsieve_mailbox1_before = file:/usr/local/share/dovecot/imapsieve/train-spam.sieve
+
+  imapsieve_mailbox2_name = *
+  imapsieve_mailbox2_from = Spam
+  imapsieve_mailbox2_causes = COPY
+  imapsieve_mailbox2_before = file:/usr/local/share/dovecot/imapsieve/retrain-ham.sieve
+
+  quota = count:User quota
+  quota_max_mail_size = 100M
+  quota_rule = *:storage=1G
+  quota_rule2 = Trash:storage=+100M
+  quota_warning = storage=95%% quota-warning 95 %u
+  quota_warning2 = storage=80%% quota-warning 80 %u
+  quota_warning3 = -storage=100%% quota-warning below %u
+
+  recipient_delimiter = +
+
+  mail_log_events = delete undelete expunge copy mailbox_delete mailbox_rename mailbox_create
+  mail_log_fields = uid box msgid size vsize
+
+  trash = /etc/dovecot/dovecot-trash.conf.ext
+}

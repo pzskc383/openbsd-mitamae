@@ -1,0 +1,9 @@
+bogofilter_dir=/var/spool/bogofilter
+
+spamicity_tags = Spam, Ham, Unsure
+header_format = %h: %c; spamicity=%p
+terse_format = %1.1c %f
+log_update_format = register-%r, %w words, %m messages
+log_header_format = %h: %c, spamicity=%f, ipaddr=%A, queueID=%Q, msgID=%I
+
+terse=no

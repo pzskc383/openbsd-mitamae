@@ -1,5 +1,8 @@
 openbsd_package "dovecot"
 openbsd_package "dovecot-pigeonhole"
+openbsd_package "bogofilter" do
+  flavor "sqlite3"
+end
 
 include_recipe "../smtpd/mailpasswd_group.rb"
 
@@ -13,162 +16,88 @@ execute "usermod -G _dovecot vmail" do
   not_if "id -nG vmail |grep -qF _dovecot"
 end
 
-lines_in_file "/etc/dovecot/dovecot.conf" do
-  lines [
-    "protocols = imap lmtp",
-    "listen = #{node[:network_setup].v4.address},#{node[:network_setup].v6.address}",
-    "login_greeting = IMAP ready",
-    "submission_host = 127.0.0.1:587",
-    "mail_debug = yes"
-  ]
+execute "backup original dovecot.conf" do
+  command "cp -p /etc/dovecot/dovecot.conf /etc/dovecot/dovecot.conf.orig"
+  not_if "test -f /etc/dovecot/dovecot.conf.orig"
 end
 
+directory "/etc/dovecot/virtual_rules"
+%w[All Flagged Combined Unseen].each do |mb|
+  directory "/etc/dovecot/virtual_rules/#{mb}"
+  remote_file "/etc/dovecot/virtual_rules/#{mb}/dovecot-virtual" do
+    source "files/virtual/#{mb}/dovecot-virtual"
+  end
+end
+
+remote_file "/etc/bogofilter.cf" do
+  source "files/bogofilter.cf"
+  mode "0644"
+end
+
+remote_file "/etc/dovecot/dovecot-trash.conf.ext" do
+  source "files/dovecot-trash.conf.ext"
+  mode "0644"
+end
+
+template "/etc/dovecot/dovecot.conf" do
+  source "templates/dovecot.conf.erb"
+  mode "0644"
+end
+
+directory "/usr/local/share/dovecot/shell"
+%w[bogofilter-classify bogofilter-train quota-warning].each do |script|
+  remote_file "/usr/local/share/dovecot/shell/#{script}.sh" do
+    source "files/scripts/#{script}.sh"
+    mode "0755"
+  end
+end
+
+%w[sieve-pipe sieve-filter].each do |dir|
+  directory "/var/dovecot/#{dir}" do
+    owner "_dovecot"
+    group "_dovecot"
+    mode "0755"
+  end
+end
+
+SIEVE_SCRIPTS = {
+  "sieve/before" => %w[00-bogofilter-classify 01-spamtest],
+  "sieve" => %w[default],
+  "imapsieve" => %w[retrain-ham train-ham train-spam],
+  "sieve/global" => %w[domain-reports system-mails catchall]
+}.freeze
+
+SIEVE_SCRIPTS.each do |dir, scripts|
+  puts dir.inspect
+  puts scripts.inspect
+  basedir = "/usr/local/share/dovecot/#{dir}"
+
+  directory basedir do
+    owner "vmail"
+    group "vmail"
+  end
+
+  scripts.each do |script|
+    script_path = "#{basedir}/#{script}.sieve"
+
+    execute "sievec #{script_path}" do
+      action :nothing
+      command "sievec #{script}.sieve && chmod 660 #{script}.* && chown :vmail #{script}.*"
+      cwd basedir
+      not_if "test -f #{basedir}/#{script}.svbin"
+    end
+
+    remote_file script_path do
+      source "files/sieve/#{script}.sieve"
+      notifies :run, "execute[sievec #{script_path}]"
+      owner "vmail"
+      group "vmail"
+    end
+  end
+end
 execute "generate_dovecot_dhparam" do
   command "openssl dhparam -outform PEM -out /etc/ssl/dh-2048.pem 2048"
   not_if { ::File.exist?("/etc/ssl/dh-2048.pem") }
-end
-
-ssl_config_block = <<~SSL_BLOCK
-  # DOVECOTSSL
-  ssl_cert = </etc/ssl/fqdn.crt
-  ssl_key = </etc/ssl/private/fqdn.key
-  # /DOVECOTSSL
-SSL_BLOCK
-
-file "/etc/dovecot/conf.d/10-ssl.conf" do
-  action :edit
-
-  block do |data|
-    data.gsub!(%r{^.*(ssl_key|ssl_cert)\s=\s(.*)$}, '# \1')
-
-    data.gsub!(%r{^.*ssl\s=\s(.*)$}, 'ssl = yes')
-    data.gsub!(%r{^.*ssl_dh\s=\s(.*)$}, 'ssl_dh = </etc/ssl/dh-2048.pem')
-
-    data.gsub!(%r{\n*# DOVECOTSSL\n.*\n# /DOVECOTSSL\n*}m, '')
-    data << "\n#{ssl_config_block}\n"
-  end
-
-  notifies :restart, "service[dovecot]"
-end
-
-lines_in_file "/etc/dovecot/conf.d/10-mail.conf" do
-  lines [
-    "mail_home = /var/vmail/%d/%n",
-    {
-      line: "mail_location = maildir:~/mail:LAYOUT=Maildir++",
-      regex: %r{^.*mail_location.*$}
-    },
-    "mail_uid = vmail",
-    "mail_gid = vmail",
-    "mmap_disable = yes",
-    "mail_plugin_dir = /usr/local/lib/dovecot",
-    "mail_plugins = $mail_plugins acl quota"
-  ]
-
-  notifies :restart, "service[dovecot]"
-end
-
-remote_file "/etc/dovecot/conf.d/auth-passwdfile.conf.ext" do
-  source "files/auth-passwdfile.conf.ext"
-  mode "0644"
-  owner "root"
-  group "wheel"
-
-  notifies :restart, "service[dovecot]"
-end
-
-lines_in_file "/etc/dovecot/conf.d/10-auth.conf" do
-  lines [
-    {
-      regexp: %r{^!include auth-system\.conf\.ext},
-      line: "#!include auth-system.conf.ext",
-      append: false
-    },
-    {
-      regexp: %r{.*#?!include auth-passwdfile\.conf\.ext},
-      line: "!include auth-passwdfile.conf.ext"
-    }
-  ]
-
-  notifies :restart, "service[dovecot]"
-end
-
-auth_userdb_block = <<-AUTH_USERDB_BLOCK
-
-  unix_listener auth-userdb {
-    mode = 0666
-    user = vmail
-    group = vmail
-  }
-AUTH_USERDB_BLOCK
-
-file "/etc/dovecot/conf.d/10-master.conf" do
-  action :edit
-  block do |data|
-    # 'service lmtp' section - add executable config
-    data.gsub!(%r/service lmtp {\n.+?\n}\n/m) do |match|
-      match.gsub!(%r{\s*executable =.*$}, '')
-      match.gsub!(%r[\n}]m, "\n  executable = lmtp -L\n}")
-    end
-
-    # 'service auth' section - add unix_listener auth-userdb config
-    # append extra_groups = _mailpasswd
-    data.gsub!(%r/service auth {\n.+?\n}\n/m) do |match|
-      match.gsub!(%r/\s*unix_listener auth-userdb {\n.+?\n\s+}\n/m, auth_userdb_block)
-
-      match.gsub!(%r{\s*#?extra_groups =.*$}, '')
-      match.gsub!(%r/\n}/m, "\n  extra_groups = _mailpasswd\n}")
-    end
-
-    # 'service auth-worker' section - set user = $default_internal_user
-    data.gsub!(%r/service auth-worker {\n.+?\n}\n/m) do |match|
-      match.gsub!(%r{\s*#?user =.*$}, '')
-      match.gsub!(%r[\n}]m, "\n  user = $default_internal_user\n}")
-    end
-  end
-
-  notifies :restart, "service[dovecot]"
-end
-
-file "/etc/dovecot/conf.d/20-lmtp.conf" do
-  action :edit
-  block do |data|
-    data.gsub!(%r/protocol lmtp\s*\{.+?\n\}\n/m) do |match|
-      match.gsub!(%r{\s*#?mail_plugins =.*$}, '')
-      match.gsub!(%r{\s*#?info_log_path =.*$}, '')
-      match.gsub!(%r{\s*#?log_path =.*$}, '')
-      match.gsub!(%r{\s*#?syslog_facility =.*$}, '')
-
-      match.gsub!(%r[\n}]m, "\n  mail_plugins = $mail_plugins sieve\n}")
-      match.gsub!(%r[\n}]m, "\n  info_log_path =\n}")
-      match.gsub!(%r[\n}]m, "\n  log_path =\n}")
-      match.gsub!(%r[\n}]m, "\n  syslog_facility = mail\n}")
-    end
-  end
-
-  notifies :restart, "service[dovecot]"
-end
-
-file "/etc/dovecot/conf.d/20-imap.conf" do
-  action :edit
-  block do |data|
-    data.gsub!(%r/protocol imap\s*\{.+?\n\}\n/m) do |match|
-      match.gsub!(%r{^\s*#?mail_plugins\s+=.*$}, "  mail_plugins = $mail_plugins imap_acl imap_quota mail_log notify")
-    end
-  end
-end
-
-block_in_file "/etc/dovecot/conf.d/10-metrics.conf" do
-  content <<~STATS
-    service stats {
-      client_limit = 100
-      unix_listener stats-writer {
-        user = vmail
-      }
-    }
-  STATS
-
-  notifies :restart, "service[dovecot]"
 end
 
 service "dovecot" do

@@ -42,11 +42,7 @@ define :knot_domain_ksk, ksk: nil do
   end
 end
 
-%w[knot dbus ldns-utils].each do |pkg|
-  openbsd_package pkg do
-    action :install
-  end
-end
+openbsd_package "knot"
 
 directory '/var/db/knot/zones' do
   mode '0750'

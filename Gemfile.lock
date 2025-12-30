@@ -101,7 +101,7 @@ DEPENDENCIES
   ed25519 (~> 1.2)
   hocho
   itamae (~> 1.14)
-  pry (~> 0.16.0)
+  pry
   rake
   rubocop
   rubocop-itamae

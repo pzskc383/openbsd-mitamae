@@ -18,9 +18,16 @@ filter dkimsign_ed25519 proc-exec "filter-dkimsign \
     -s e -k <%= node[:mail_dkim_key] %>" \
     user _dkimsign group _dkimsign
 
+filter authresult proc-exec "filter-auth"
+
+filter check_fcrdns phase connect match !fcrdns junk
+
+filter incoming_chain chain { check_fcrdns, authresult }
+
 listen on socket
 
 listen on egress port smtp \
+    filter "incoming_chain" \
     tls pki fqdn hostname $fqdn
     
 listen on egress port submission \
