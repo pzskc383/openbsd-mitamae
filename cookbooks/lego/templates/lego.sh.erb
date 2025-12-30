@@ -26,7 +26,7 @@ COMMAND="${1-run}"
 echo "Acquiring cert: <%= @cert[:name] %>"
 export LEGO_EMAIL=<%= @cert[:admin_email] %>
 export CERT_NAME=<%= @cert[:name] %>
-lego \
+/usr/local/bin/lego \
     --accept-tos \
     <%= (@cert[:validation_method] || "--dns rfc2136") %> \
     --key-type rsa2048 \
@@ -39,5 +39,5 @@ lego \
 
 <%- if @cert[:distributed] -%>
 echo "Distributing certificates to other hosts"
-timeout 10s rdist -f /var/lego/distfile
+timeout 10s /usr/bin/rdist -f /var/lego/distfile
 <%- end -%>

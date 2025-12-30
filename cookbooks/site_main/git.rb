@@ -80,11 +80,11 @@ end
 file "/etc/ssh/sshd.conf.d/git" do
   content <<~SSHD_CONFIG
     Match User git LocalPort 22
-	      AllowTcpForwarding no
-	      X11Forwarding no
-	      AllowAgentForwarding no
-	      PermitTTY no
-	      AuthorizedKeysFile .authorized_keys
+      AllowAgentForwarding no
+      AllowTcpForwarding no
+      X11Forwarding no
+      PermitTTY no
+      AuthorizedKeysFile .authorized_keys
   SSHD_CONFIG
 
   notifies :reload, "service[sshd]"

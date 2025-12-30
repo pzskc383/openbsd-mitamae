@@ -6,6 +6,7 @@ node[:relayd_http_filter_snippets].append <<~SNIPPET
   match request header "Host" value "uefi.boot.*.on.my.b0x.pw" tag "box-boot-rdr-done"
   # if we're asking for boot.b0x.pw domains
   match request header "Host" value "boot.my.b0x.pw" tag "box-boot"
+  match request header "Host" value "xyz.boot.my.b0x.pw" tag "box-boot"
   match request header "Host" value "boot.*.on.my.b0x.pw" tag "box-boot"
   # AND requesting /
   match request path "/" tagged "box-boot" tag "box-boot-root"

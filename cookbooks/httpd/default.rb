@@ -62,14 +62,13 @@ service 'relayd' do
 end
 
 include_recipe "../pf/defines.rb"
+node[:pf_enable_relayd] = true
 %w[http https].each do |port|
   pf_open "relayd/#{port}" do
     label "http"
     port port
   end
 end
-node[:pf_enable_relayd] = true
-notify!("create@template[/etc/pf.conf]")
 
 include_recipe "../openbsd_server/defines.rb"
 newsyslog_snippet "http_default" do
