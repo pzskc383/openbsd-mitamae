@@ -8,7 +8,7 @@ Port 22
 #ListenAddress ::
 
 PermitRootLogin prohibit-password
-AuthorizedKeysFile	.ssh/authorized_keys
+AuthorizedKeysFile .ssh/authorized_keys
 PubkeyAuthentication yes
 HostbasedAuthentication no
 PasswordAuthentication no
@@ -17,6 +17,8 @@ AllowTcpForwarding no
 X11Forwarding no
 AllowAgentForwarding no
 AllowStreamLocalForwarding no
+PermitTTY no
+AuthenticationMethods publickey
 
 LoginGraceTime 30s
 MaxAuthTries 1
@@ -30,18 +32,20 @@ KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,curve25519-sha256,cur
 MACs umac-128-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
 HostKeyAlgorithms ssh-ed25519,rsa-sha2-256,rsa-sha2-512
 
-Match Invalid-User LocalPort 22
-    RefuseConnection yes
-    PermitTTY no
-
-Match User root LocalPort 38322
+Match LocalPort 38322 User root
+    RefuseConnection no
     AllowAgentForwarding yes
     AllowStreamLocalForwarding yes
     AllowTcpForwarding yes
     X11Forwarding yes
+    PermitTTY yes
 
-Match User root LocalPort 22
+Match LocalPort 22 Group _ssh_public
+    PermitTTY yes
+    RefuseConnection no
+
+Match LocalPort 22
     RefuseConnection yes
-    PermitTTY no
 
-Include /etc/ssh/sshd.conf.d/*
+Match Invalid-User
+    RefuseConnection yes

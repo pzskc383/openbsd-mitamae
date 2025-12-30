@@ -8,12 +8,16 @@ git_template = "#{git_root}/.template"
 git_shell_cmds = "#{git_root}/git-shell-commands"
 
 package "git"
-group "git" do
-  gid 1997
-end
 
 execute "create git user" do
-  command "useradd -g _gitdaemon -d #{git_root} -u 1997 -s /usr/local/bin/git-shell -c 'Git hosting user' git"
+  command ""
+  command <<~USERADD_CMD
+    useradd -g _gitdaemon -G _ssh_public \
+      -d #{git_root} -u 1997 \
+      -s /usr/local/bin/git-shell \
+      -c 'Git hosting user' \
+      git
+  USERADD_CMD
   not_if "id git"
 end
 
@@ -23,12 +27,19 @@ directory git_root do
   mode "0755"
 end
 
-file "#{git_root}/.authorized_keys" do
-  content node[:git_authorized_keys].join("\n")
+directory "#{git_root}/.ssh" do
+  owner "git"
+  group "_gitdaemon"
+  mode "0700"
+end
+
+file "#{git_root}/.ssh/authorized_keys" do
+  content "#{node[:git_authorized_keys].join("\n")}\n"
   mode "0600"
   owner "git"
   group "git"
 end
+
 execute "create repo template" do
   command "git init --bare #{git_template}"
   not_if "test -d #{git_template}"
@@ -65,7 +76,7 @@ end
 execute "set gitdaemon flags" do
   command <<~CMD
     rcctl set gitdaemon flags --verbose --syslog --informative-errors \
-      --base-path=/var/www/repos /var/www/repos
+      --base-path=#{git_root} #{git_root}
   CMD
   notifies :restart, "service[gitdaemon]"
 end
@@ -75,19 +86,6 @@ execute "set gitdaemon user" do
     rcctl set gitdaemon user git
   CMD
   notifies :restart, "service[gitdaemon]"
-end
-
-file "/etc/ssh/sshd.conf.d/git" do
-  content <<~SSHD_CONFIG
-    Match User git LocalPort 22
-      AllowAgentForwarding no
-      AllowTcpForwarding no
-      X11Forwarding no
-      PermitTTY no
-      AuthorizedKeysFile .authorized_keys
-  SSHD_CONFIG
-
-  notifies :reload, "service[sshd]"
 end
 
 include_recipe "../pf/defines.rb"

@@ -7,6 +7,9 @@ _err() {
   exit 1
 }
 
+line_format="%-25s %-15s %-40s\n"
+printf "$line_format" "NAME" "CATEGORY" "DESCRIPTION"
+
 ( 
 	cd /var/www/repos || _err "git root doesn't exist!"
 	
@@ -16,6 +19,6 @@ _err() {
 		category="$(git config get -f "${d}"/config gitweb.category 2>/dev/null)"
 		description="$(git config get -f "${d}"/config gitweb.description 2>/dev/null)"
 
-		printf "%s%%%s%%%s\n" "$name" "$category" "$description" |column -t -s%
+		printf "$line_format" "$name" "$category" "$description"
 	done
 )

@@ -1,6 +1,9 @@
 include_recipe "defines.rb"
 
 service "sshd"
+group "_ssh_public" do
+  gid 1996
+end
 
 remote_file "/etc/ssh/sshd_config" do
   source "files/sshd_config"
@@ -30,6 +33,15 @@ end
     source "files/#{File.basename(fn)}"
     mode "0640"
   end
+end
+
+file "/var/log/debug" do
+  content ""
+  mode "0750"
+  owner "root"
+  group "wheel"
+
+  not_if "test -f /var/log/debug"
 end
 
 template "/etc/hosts" do

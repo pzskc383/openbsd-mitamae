@@ -4,7 +4,12 @@ dickd_chroot = "/var/bothome"
 dickd_bin = "#{dickd_chroot}/dick"
 
 has_dickd = run_command("test -x #{dickd_bin}", error: false).exit_status == 0
-has_dickd = false
+
+directory dickd_chroot do
+  owner "nobody"
+  group "nobody"
+  mode "0755"
+end
 
 git "dickd build dir" do
   repository "https://git.sr.ht/~pzskc383/erection"
@@ -13,7 +18,7 @@ git "dickd build dir" do
 end
 
 execute "compile erection" do
-  command "make erection.fast; install -o nobody -g nobody -m 0755 #{dickd_bin}"
+  command "make erection.fast &&j install -onobody -gnobody -m 0755 erection.fast #{dickd_bin}"
   cwd dickd_builddir
   not_if { has_dickd }
 end
