@@ -20,6 +20,11 @@ if ! [ -d "${repo_dir}" ]; then
   _err "repo ${repo_dir}  doesn't exist"
 fi
 
+# we have repo, but it doesn't have export-ok file = invisible, don't delete
+if [ -d "${repo_dir}" ] && [ -f "${repo_dir}/git-daemon-export-ok" ]; then
+  _err "repo ${repo_dir} doesn't exist"
+fi
+
 echo "you're going to delete ${repo_dir} repo"
 echo "type repository repo_name (\`${repo_name}\`) to confirm"
 read -r confirm

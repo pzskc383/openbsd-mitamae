@@ -2,17 +2,29 @@
 
 set -eu
 
+_errexit() {
+  echo "$@"
+  exit 1
+}
+
 name="$1"
 description="${2-}"
 category="${3-misc}"
 
 if ! [ "${name}" ]; then
-  echo "you should provide name of repository"
-  exit 1
+  _errexit "you should provide name of repository"
 fi
 
 repo_dir="${name}"
 repo_config="${repo_dir}/config"
+
+if [ -d "${repo_dir}" ]; then
+		if [ -f "${repo_dir}"/git-daemon-export-ok ]; then
+      _errexit "invalid repository ${name}"
+    else
+      _errexit "repository ${name} already exists"
+    fi
+fi
 
 git init --bare --template="${PWD}/.template" "${repo_dir}"
 

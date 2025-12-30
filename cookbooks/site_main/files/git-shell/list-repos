@@ -7,18 +7,23 @@ _err() {
   exit 1
 }
 
-line_format="%-25s %-15s %-40s\n"
-printf "$line_format" "NAME" "CATEGORY" "DESCRIPTION"
+table_line() {
+	printf "%-25s %-15s %-40s\n" "$1" "$2" "$3"
+}
+
+table_line "NAME" "CATEGORY" "DESCRIPTION"
 
 ( 
 	cd /var/www/repos || _err "git root doesn't exist!"
 	
 	for d in *; do
 		if ! [ -f "$d"/config ]; then continue; fi
+		if ! [ -f "$d"/git-daemon-export-ok ]; then continue; fi
+
 		name="${d%/}"
 		category="$(git config get -f "${d}"/config gitweb.category 2>/dev/null)"
 		description="$(git config get -f "${d}"/config gitweb.description 2>/dev/null)"
 
-		printf "$line_format" "$name" "$category" "$description"
+		table_line "$name" "$category" "$description"
 	done
 )
