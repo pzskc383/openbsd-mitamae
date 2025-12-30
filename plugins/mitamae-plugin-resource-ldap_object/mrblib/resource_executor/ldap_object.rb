@@ -56,9 +56,11 @@ module ::MItamae
 
           ldif_file = Tempfile.new "ldif"
           ldif_file.write ldif
+          ldif_file.close
 
           cmdline = "cat #{ldif_file.path} | #{Shellwords.join(ldap_mod_cmd)}"
           cmd_status = run_command(cmdline, error: false)
+          ldif_file.unlink
 
           raise "Error running #{cmdbase}: #{cmd_status.stderr}" if cmd_status.exit_status > 0
 
