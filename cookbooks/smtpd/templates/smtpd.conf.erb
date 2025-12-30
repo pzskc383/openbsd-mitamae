@@ -1,8 +1,8 @@
 # Role: <%= @mail_role %>
 
 fqdn = "<%= @fqdn %>"
-pki fqdn cert "<%= @tls_cert %>"
-pki fqdn key "<%= @tls_key %>"
+pki fqdn cert "/etc/ssl/fqdn.crt"
+pki fqdn key "/etc/ssl/private/fqdn.key"
 
 smtp limit max-mails 10
 smtp limit max-rcpt 5

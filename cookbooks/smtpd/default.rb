@@ -5,8 +5,6 @@ node.reverse_merge!(
   mail_admin_aliases: %w[MAILER-DAEMON postmaster hostmaster
                          operator www security manager dumper
                          noc webmaster],
-  mail_tls_cert: "/etc/ssl/fqdn.crt",
-  mail_tls_key: "/etc/ssl/private/fqdn.key"
 )
 
 primary_domains = []
@@ -138,8 +136,6 @@ template "/etc/mail/smtpd.conf" do
     mail_role: mail_role,
     primary_domains: primary_domains,
     relay_domains: relay_domains,
-    tls_cert: node[:mail_tls_cert],
-    tls_key: node[:mail_tls_key],
     mail_domains: node[:mail_domains]
   )
 
