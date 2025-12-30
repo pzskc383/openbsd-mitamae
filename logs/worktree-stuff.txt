@@ -1,0 +1,2829 @@
+
+ * ▐▛███▜▌ *   Claude Code v2.0.76
+* ▝▜█████▛▘ *  Opus 4.5 · Claude Pro
+ *  ▘▘ ▝▝  *   ~/dev/obsd-mitamae
+
+  A gift for you
+  Your rate limits are 2x higher through 12/31. Enjoy the extra room to think!
+
+> OKAY. i did some git submodule reorganization.
+
+but i don't think i made it better.
+
+so, example repos now live in misc/examples
+misc/notes and misc/dist are two detached branches in this repo checked out 
+as submodules.
+one is for markdown vomit from clankers, other is mitamae binaries.
+misc/mitamae is mitamae sources, saved as detached branch in this repo too. 
+with branch mitamae-src pointing at HEAD. and a tag for a good measure.
+
+so the idea is when you do just clone you get just working cookbooks 
+(almost, you need to pull plugin/cron).
+and when you wanna have references, you can git sumodule update --recursive 
+or smth.
+
+NOW. git submodules sucks huge ass. Or i just don't understand them.
+is there a better abstraction in git for that?
+i know that dist branch should be git-lfs, really, but we'll get to that. 
+
+● Git submodules are indeed painful. Let me outline the alternatives:
+
+  Alternatives to git submodules
+
+  1. Git subtrees
+  - Merges external content directly into your repo
+  - Simpler day-to-day workflow (no submodule update dance)
+  - Downside: loses the "optional checkout" property you want - everything is always there
+
+  2. Git worktrees
+  - Lets you check out multiple branches simultaneously in separate directories
+  - Could work for your detached-branch-in-same-repo pattern
+  - git worktree add misc/notes notes-branch
+  - Cleaner than submodules pointing at yourself
+
+  3. Sparse checkout (modern cone mode)
+  - Clone everything but only materialize what you need
+  - git sparse-checkout set to pick directories
+  - Good for "minimal by default, opt-in to more"
+
+  4. Just separate repos + a bootstrap script
+  - Honestly sometimes the simplest answer
+  - A ./setup.sh that clones optional deps into expected locations
+  - No git magic to fight
+
+  For your specific setup
+
+  The "detached branches in same repo as submodules" pattern is clever but fighting git's model. Consider:
+
+  1. Worktrees for misc/notes and misc/dist - they're branches of this repo anyway
+  2. Actual separate repo for misc/mitamae (upstream sources don't belong as a branch of your config repo)
+  3. Git LFS for binaries in misc/dist (as you noted)
+
+  Want me to look at your current .gitmodules and sketch out what a worktree-based setup would look like?
+
+> yeah, if you wanna, never worked with worktrees. sounds nice tbh. 
+
+● Read(.gitmodules)
+  ⎿  Read 34 lines
+
+● Bash(git branch -a)
+  ⎿    dist                        
+     * master
+       mitamae-src
+     … +11 lines (ctrl+o to expand)
+
+● Bash(ls -la misc/ 2>/dev/null || echo "misc/ doesn't exist yet")
+  ⎿  total 872K                                   
+     drwxr-xr-x. 1 alex alex   66 гру 28 18:35 ./
+     drwxr-xr-x. 1 alex alex  384 гру 28 18:52 ../
+     … +6 lines (ctrl+o to expand)
+
+● Bash(git worktree list)
+  ⎿  /home/alex/dev/obsd-mitamae  8a3888b [master]
+
+
+● Got it. So you have:
+
+  Actual external repos (keep as submodules):
+  - plugins/mitamae-plugin-resource-cron
+  - misc/examples/* (3 repos)
+
+  Self-referencing submodules (convert to worktrees):
+  - misc/dist → branch dist
+  - misc/notes → branch notes
+  - misc/mitamae → branch mitamae-src
+
+  Worktrees 101
+
+  # Add a worktree - checks out branch into a directory
+  git worktree add <path> <branch>
+
+  # List worktrees
+  git worktree list
+
+  # Remove a worktree
+  git worktree remove <path>
+
+  Key difference from submodules: worktrees share the same .git database. No separate clone, no sync issues, no "detached HEAD" confusion.
+
+  What migration would look like
+
+  # 1. Remove the self-referencing submodules
+  git submodule deinit misc/dist misc/notes misc/mitamae
+  rm -rf misc/dist misc/notes misc/mitamae
+  git rm misc/dist misc/notes misc/mitamae
+
+  # 2. Add them back as worktrees
+  git worktree add misc/dist dist
+  git worktree add misc/notes notes
+  git worktree add misc/mitamae mitamae-src
+
+  # 3. Update .gitmodules (remove the 3 self-referencing entries)
+  # 4. Add misc/dist, misc/notes, misc/mitamae to .gitignore
+
+  Result
+
+  - git clone still gets just master (clean checkout)
+  - git worktree add misc/notes notes to materialize extras (one command, no submodule init/update dance)
+  - Changes in worktrees are just regular commits on those branches
+  - No more "submodule pointing at itself" weirdness
+
+  Want me to do this conversion, or just the .gitmodules cleanup part?
+
+> > 4. Add misc/dist, misc/notes, misc/mitamae to .gitignore
+
+wait,  so the fact that those dirs point at these repos would be untacked?
+is there some sort of `post-clone` or `post-checkout` hook to do that 
+manually after clone? 
+
+● Exactly right - worktrees are local state, not tracked in the repo. There's no .gitworktrees equivalent to .gitmodules.
+
+  Hooks situation:
+  - post-checkout exists and runs after clone (clone does a checkout at the end)
+  - BUT hooks live in .git/hooks/ which isn't cloned - chicken and egg problem
+
+  Practical options:
+
+  1. Setup script (simplest)
+  #!/bin/sh
+  # setup-worktrees.sh
+  git worktree add misc/dist dist 2>/dev/null || true
+  git worktree add misc/notes notes 2>/dev/null || true
+  git worktree add misc/mitamae mitamae-src 2>/dev/null || true
+  1. People run ./setup-worktrees.sh after clone if they want extras.
+  2. Makefile target (if you already have one)
+  extras:
+      git worktree add misc/dist dist
+      ...
+  3. Git config + template (fancy but fragile)
+    - Set up a hook in ~/.git-templates/hooks/post-checkout
+    - Only works if people have the template configured
+
+  ---
+  Honestly, the tradeoff is:
+
+  |                      | Submodules             | Worktrees         |
+  |----------------------|------------------------|-------------------|
+  | Relationship tracked | Yes (.gitmodules)      | No                |
+  | Works across clones  | Yes (with --recursive) | No (needs script) |
+  | Mental model         | Confusing              | Simple            |
+  | Day-to-day UX        | Pain                   | Nice              |
+
+  For your case - since these are optional extras anyway - a setup script seems fine. The people who want misc/notes will run one command either way.
+
+  Does that tradeoff work for you, or is the "declarative relationship" important enough to stick with submodules for those three?
+
+> okay. let's put that as a rake task. `:prepare` i guess. 
+
+● Search(pattern: "**/Rakefile*")
+  ⎿  Found 3 files (ctrl+o to expand)
+
+● Read(Rakefile)
+  ⎿  Read 30 lines
+
+● Update(Rakefile)
+  ⎿ Tool use rejected with user message: needs more love.
+    first - `prepare` task should absolutely set up submodules with cron plugin.
+     otherwise cookbooks don't work.
+    second - `dist` should exist too - if we need to deploy to freshly installed
+     server (though no code is written that actually deploys from `misc/dist` 
+    yet)
+    third - not sure if `notes` should be available as default. i envisioned 
+    that dir as a helper for LLM's and maybe my stupid ideas.
+    forth - should be combine mitamae-src and exampes into a single task? does 
+    it make sense? who's gonna ever run those tasks...
+
+● Good points. Let me think about the structure:
+
+  Essential for working cookbooks:
+  - plugins/mitamae-plugin-resource-cron (submodule init)
+  - misc/dist (worktree - for deploying binaries)
+
+  Reference material (who runs this?):
+  - misc/notes - LLM/idea dump
+  - misc/mitamae - upstream sources
+  - misc/examples/* - other people's cookbooks
+
+  How about:
+
+  task :prepare do
+    # submodules that cookbooks need
+    sh "git submodule update --init plugins/mitamae-plugin-resource-cron"
+    # worktree for binaries
+    sh "git worktree add misc/dist dist" unless Dir.exist?("misc/dist")
+  end
+
+  namespace :prepare do
+    desc "Set up reference material (notes, mitamae source, examples)"
+    task :extras do
+      sh "git worktree add misc/notes notes" unless Dir.exist?("misc/notes")
+      sh "git worktree add misc/mitamae mitamae-src" unless Dir.exist?("misc/mitamae")
+      sh "git submodule update --init misc/examples/example-ruby-infra misc/examples/example-ruby-git misc/examples/sorah-cnw"
+    end
+  end
+
+  So:
+  - rake prepare → working setup
+  - rake prepare:extras → the stuff for poking around
+
+  Does that split make sense, or would you group things differently?
+
+> huh. sounds exactly right. i'm impressed.
+i approve. 
+
+● Update(Rakefile)
+  ⎿  Added 15 lines                                                      
+       6    task.options << '--display-cop-names'                        
+       7  end                                                            
+       8                                                                 
+       9 +desc "Set up working environment (cron plugin + dist           
+         +binaries)"                                                     
+      10 +task :prepare do                                               
+      11 +  sh "git submodule update --init                              
+         +plugins/mitamae-plugin-resource-cron"                          
+      12 +  sh "git worktree add misc/dist dist" unless                  
+         +Dir.exist?("misc/dist")                                        
+      13 +end                                                            
+      14 +                                                               
+      15 +namespace :prepare do                                          
+      16 +  desc "Set up reference material (notes, mitamae source,      
+         +examples)"                                                     
+      17 +  task :extras do                                              
+      18 +    sh "git worktree add misc/notes notes" unless              
+         +Dir.exist?("misc/notes")                                       
+      19 +    sh "git worktree add misc/mitamae mitamae-src" unless      
+         +Dir.exist?("misc/mitamae")                                     
+      20 +    sh "git submodule update --init                            
+         +misc/examples/example-ruby-infra                               
+         +misc/examples/example-ruby-git misc/examples/sorah-cnw"        
+      21 +  end                                                          
+      22 +end                                                            
+      23 +                                                               
+      24  SOPS_FILES = [*Dir["./data/**/*.sops.yml"]].freeze             
+      25                                                                 
+      26  namespace :sops do                                             
+
+● Done. Now to complete the migration, you'd need to:
+
+  1. Remove the self-referencing submodules from .gitmodules (keep cron + examples)
+  2. Remove them from git's index
+  3. Add the worktree paths to .gitignore
+
+  Want me to do that cleanup too? It'd be:
+
+  # Remove submodule tracking
+  git rm --cached misc/dist misc/notes misc/mitamae
+
+  # Then edit .gitmodules to remove those 3 entries
+  # Then add to .gitignore
+
+> i think i already did. and my misc/ is in gitignore by-default.
+
+yeah.. looks good so far...
+
+OKAY. you're right that mitamae sources need to live in other repo. will fix
+ that in a bit.
+how do i tell *YOU* or other gay fruity llms that CLAUDE.md is in `notes` 
+branch and worktree is in misc/notes?
+
+and next big thing - i need to do some branch-filtering to move commits that
+ touched dist/mitamae-*-* to dist branch. 
+and also the same for 'deploy' directory - it's a big WIP and should be in 
+oun feature branch for now. 
+
+● Telling LLMs about CLAUDE.md
+
+  A few options:
+
+  1. Symlink in root - ln -s misc/notes/CLAUDE.md CLAUDE.md (but requires worktree to exist)
+  2. Stub file in root that points there:
+  # See misc/notes/CLAUDE.md
+  Run `rake prepare:extras` to set up the notes worktree.
+  3. Just mention it in README - most LLMs will read README first
+
+  Option 2 is probably cleanest - works even without the worktree checked out.
+
+  Branch filtering
+
+  git filter-branch is deprecated. Use git filter-repo (much faster, less footgun-y):
+
+  # Install if needed
+  pip install git-filter-repo
+
+  # Extract commits touching dist/mitamae-* to dist branch
+  git filter-repo --path dist/mitamae-* --refs dist --force
+
+  # Extract deploy/ to feature branch
+  git checkout -b feature/deploy
+  git filter-repo --path deploy/ --refs feature/deploy --force
+
+  BUT - filter-repo rewrites history, which is destructive. If you just want to move current files to another branch without rewriting history:
+
+  # Simpler: just move the files to the branch now, accept messy history
+  git checkout dist
+  git checkout master -- dist/mitamae-*
+  git commit -m "Move binaries to dist branch"
+  git checkout master
+  git rm -r dist/mitamae-*
+  git commit -m "Remove binaries from master"
+
+  Which approach do you want? Clean history (filter-repo) or just "move it and move on"?
+
+> > accept messy history
+
+which i already did. no, if someone cloned this project (which i doubt, i 
+can really look at http access logs to be sure, but i don't think any 
+person, real or otherwise, cloned that).
+and if they did - sucks to be them, i guess.
+
+and, uh, since when filter-branch is deprecated? i can go full nuclear and 
+install reposurgeon and spent another evening in it. 
+
+● filter-branch has had a big scary warning in the git docs since ~2.24 (2019):
+
+  git filter-branch has a plethora of pitfalls... Please use an alternative history filtering tool such as git filter-repo.
+
+  It still works, just yells at you. The main issues are: it's slow, easy to corrupt things, and the CLI is confusing.
+
+  Hierarchy of repo surgery tools:
+
+  | Tool          | Complexity         | Use case                                    |
+  |---------------|--------------------|---------------------------------------------|
+  | filter-repo   | Medium             | 90% of history rewrites                     |
+  | filter-branch | Medium (but angry) | When you hate yourself                      |
+  | reposurgeon   | PhD thesis         | VCS migrations, archaeology, complex grafts |
+
+  For "move files touching X pattern to branch Y", filter-repo is the right tool. Reposurgeon is for when you're merging 3 CVS repos with a Subversion repo and need to reconstruct deleted branches from 2003.
+
+  # Your case is probably just:
+  git filter-repo --path 'dist/mitamae-*' --target dist --source master
+
+  # And for deploy:
+  git filter-repo --path deploy/ --target feature/deploy --source master
+
+  Want me to look at your actual commit history to figure out the exact incantation? I can check what files/patterns need filtering.
+
+> aha.. played around. so workflow is following:
+- do a fresh clone
+- run git filter-repo --analyze, then filter-repo with path stuff rewriting 
+history in master.
+- add origin back, push master.
+- clone again, run filter-repo but with invert leaving only dist/ (or only 
+deploy/)
+- add origin and push those to specific repos...
+- maybe needs some manual copying of files i've added to detached branches 
+after branching.
+
+did i miss anything? 
+
+● That's basically it. A few notes:
+
+  1. --force - filter-repo is paranoid, you'll probably need this flag a lot
+  2. Tags - filter-repo rewrites them too, which is usually what you want. Just be aware.
+  3. Refs - you can use --refs master to only touch master and leave other branches alone (might save you some clone cycles)
+  4. Combining back - if dist/deploy end up as separate repos/clones and you want them as branches in the same origin:
+  # From your main clone after filtering master
+  git fetch /path/to/dist-clone dist:dist
+  git fetch /path/to/deploy-clone main:feature/deploy
+  git push origin --all
+  5. The manual copy step - yeah, that's the annoying bit. git log --oneline --all -- dist/ before you start to see what you're dealing with.
+
+  Sounds like you've got it. The fresh-clone-per-operation dance is the main pain point with filter-repo, but it's the price of not corrupting your repo.
+
+> a-ha. ALMOST. got it. my feature/deploy branch now has some commits 
+touching deploy and some from master without order.
+is there a way to rebase those touching deploy over master? 
+
+● Yeah, cherry-pick the ones you want onto a clean branch:
+
+  # See which commits actually touch deploy/
+  git log --oneline feature/deploy -- deploy/
+
+  # Start fresh from master
+  git checkout -b feature/deploy-clean master
+
+  # Cherry-pick just those commits (in order)
+  git cherry-pick $(git rev-list --reverse master..feature/deploy -- deploy/)
+
+  The --reverse is important - rev-list outputs newest-first by default, but cherry-pick needs oldest-first.
+
+  If that one-liner looks scary, you can do it manually:
+
+  git log --oneline feature/deploy -- deploy/
+  # note the commit hashes
+  git checkout -b feature/deploy-clean master
+  git cherry-pick abc123 def456 ...
+
+  Then nuke the messy branch and rename:
+
+  git branch -D feature/deploy
+  git branch -m feature/deploy-clean feature/deploy
+
+> wew! done! that was FUN! i feel powerful enough to install reposurgeon and
+ consoldiate my dotfiles repos (i have "main" dotfiles repo, one for 
+awesomewm, one for vim, one for spacemacs, one for neovim and couple of gvim
+ repos too). that way i would get my dotfiles history back to 2008, when i 
+started with gvim on windows with repo on hg... 
+
+● That's the exact use case reposurgeon was built for - Eric S. Raymond wrote it to consolidate ancient repos with mixed VCS history.
+
+  Fair warning though: reposurgeon has its own DSL and the learning curve is steep. It's less "run a command" and more "write a surgery script." The manual is a book.
+
+  Quick sanity check before you dive in:
+
+  dotfiles (git, current)
+  ├── awesomewm (git)
+  ├── vim (git)
+  ├── spacemacs (git)
+  ├── neovim (git)
+  ├── gvim-1 (git, converted from hg?)
+  ├── gvim-2 (git)
+  └── ancient-gvim (hg, 2008, windows)
+
+  The hg→git conversion is the interesting part. Options:
+
+  1. reposurgeon - full control, can interleave timelines, fix author mappings, graft histories
+  2. hg-fast-export + git grafts - simpler, just converts then you graft manually
+  3. hg-git - mercurial extension, quick and dirty
+
+  If you just want linear history (each repo becomes a subdirectory with its history preserved), git filter-repo can do most of it after converting hg→git. Reposurgeon shines when you need to interleave commits by timestamp across repos.
+
+  How tangled is the history you want? Linear per-directory, or true unified timeline?
+
+> i'll do reposurgeon, but later. i did 60% of the work, iirc, one day. now 
+i just need to find it somewhere in my ~/tmp directory... or maybe ~/arc? 
+whatever.
+
+right. plan for today was to consolidate emails, but power outages are 
+merciless. 
+
+at least i did some reorganizing! 
+
+● Solid progress! You went from "submodules pointing at themselves" to:
+
+  - Clean rake tasks (prepare / prepare:extras)
+  - Worktrees for local branches
+  - Actual submodules only for external repos
+  - Filtered deploy/ to its own feature branch
+
+  And leveled up on filter-repo along the way. Not bad for a power-outage day.
+
+  Good luck finding that reposurgeon script in the ~/tmp vs ~/arc void. That's a 2008-vintage archaeology project waiting to happen.
+
+> heh. ran locate... it's literally ~/tmp/dotfiles-reposurgeon... 15k files,
+ 190Mb.
+
+oh, and i'm SO going to normalize my committer emails.. i have like 10 
+different. 
+
+not sure _why_ i want to do that tbh. 
+
+● 190Mb of dotfiles archaeology. That's commitment.
+
+  The email normalization urge is universal and irrational. Reasons people tell themselves:
+
+  - "GitHub contribution graph will look better" (it won't matter)
+  - "Cleaner git shortlog -sne" (you'll run this once)
+  - "Professionalism" (in a private dotfiles repo)
+
+  Real reason: the git log output offends your sense of order.
+
+  Do it anyway. It's satisfying. Just add a .mailmap to your consolidated repo and let git handle the display side without rewriting history:
+
+  Proper Name <real@email.com> <old1@email.com>
+  Proper Name <real@email.com> <old2@email.com>
+  ...
+
+  Or go full reposurgeon and actually rewrite it. You've already got the repo open for surgery.
+
+> that comes later. tbh i wanna open an energy drink and do some love to my 
+email servers first.
+
+i wrote a PLAN today. and even put it in README.
+
+
+OH BTW.
+
+
+I know who's gonna update his misc/notes/CLAUDE.md now!
+
+just read README.md i updated and go update CLAUDE.md. 
+
+● Read(README.md)
+  ⎿  Read 134 lines
+
+● Read(misc/notes/CLAUDE.md)
+  ⎿  Read 296 lines
+
+● Got it. Let me update CLAUDE.md to reflect the new structure:
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿ Tool use rejected with user message: it's `rake prepare:examples` now. also,
+      i want to move hocho calls to rakefile SO BADLY. but later.
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Added 11 lines                                                      
+      2                                                                  
+      3  This file provides guidance to Claude Code (claude.ai/code)     
+         when working with code in this repository.                      
+      4                                                                  
+      5 +**Note:** This file lives in the `notes` branch, checked out as 
+        + a worktree at `misc/notes/`. Run `rake prepare:examples` to    
+        +set it up.                                                      
+      6 +                                                                
+      7  ## Overview                                                     
+      8                                                                  
+      9  This is a mitamae configuration for managing OpenBSD servers.   
+         Mitamae is an mruby-based configuration management tool         
+         (mini-Chef) that manages OpenBSD VPS instances for DNS, mail,   
+         and web services.                                               
+     ...
+      12                                                                 
+      13  ## Common Commands                                             
+      14                                                                 
+      15 +### Setup                                                      
+      16 +```bash                                                        
+      17 +# Set up working environment (cron plugin + dist binaries)     
+      18 +rake prepare                                                   
+      19 +                                                               
+      20 +# Set up reference material (notes, mitamae source, examples)  
+      21 +rake prepare:examples                                          
+      22 +```                                                            
+      23 +                                                               
+      24  ### Secrets Management                                         
+      25  ```bash                                                        
+      26  # Decrypt secrets before working                               
+
+● Now let me update the Directory Structure section to reflect the worktree setup:
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿ Tool use rejected with user message: there's no mitamae-src branch anymore, 
+    i moved it to own repo.
+
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Added 17 lines, removed 37 lines                                    
+      88  ```                                                            
+      89  /                                                              
+      90  ├── hocho.yml                      # Hocho configuration       
+      91 -├── Rakefile                       # SOPS                      
+         -encryption/decryption tasks                                    
+      91 +├── Rakefile                       # Setup tasks, SOPS, rubocop
+      92  ├── .sops.yaml                     # SOPS encryption           
+          configuration                                                  
+      93  ├── bin/                           # Bundler binstubs (hocho   
+          monkeypatch)                                                   
+      94  ├── data/                          # Host definitions and      
+          variables                                                      
+     ...
+      107  │       ├── prosody.sops.yml       # Encrypted Prosody XMPP   
+           secrets                                                       
+      108  │       ├── wireguard.yml          # WireGuard configuration  
+      109  │       └── wireguard-keys.sops.yml # Encrypted WireGuard     
+           keys                                                          
+      110 -├── cookbooks/                     # Mitamae recipes          
+      111 -│   ├── openbsd_server/            # Main server config (vim, 
+          - network, etc)                                                
+      112 -│   ├── openbsd_admin/             # Admin tools (git, zsh,   
+          -doas, tmux)                                                   
+      113 -│   ├── openbsd_com0/              # Serial console           
+          -configuration                                                 
+      114 -│   ├── openbsd_wireguard/         # WireGuard VPN            
+          -configuration                                                 
+      115 -│   ├── pf/                        # Packet filter (firewall) 
+          - configuration                                                
+      116 -│   ├── knot/                      # Knot DNS server          
+      117 -│   ├── lego/                      # Unified ACME cert        
+          -management                                                    
+      118 -│   ├── dickd/                     # Custom dickd service     
+      119 -│   ├── dovecot/                   # Dovecot IMAP server      
+      120 -│   ├── httpd/                     # OpenBSD httpd web server 
+      121 -│   ├── ldap/                      # LDAP server              
+          -configuration                                                 
+      122 -│   ├── smtpd/                     # OpenSMTPD mail server    
+      123 -│   ├── prosody/                   # Prosody XMPP server      
+      124 -│   ├── gopher/                    # Gopher protocol server   
+      125 -│   ├── site_main/                 # Main website             
+          -configuration                                                 
+      126 -│   ├── site_box_boot/             # iPXE/UEFI HTTP Boot      
+          -hosting                                                       
+      127 -│   ├── site_box_main/             # Main b0x.pw site         
+      128 -│   ├── site_box_post/             # Mail/postal services     
+          -site                                                          
+      129 -│   └── site_fqdn/                 # FQDN-based virtual       
+          -hosting                                                       
+      110 +├── cookbooks/                     # Mitamae recipes          
+          + (see Cookbook Overview)                                      
+      111  ├── plugins/                       # Custom mitamae plugins   
+      112  │   ├── mitamae-plugin-resource-openbsd_package/              
+      113 -│   ├── mitamae-plugin-resource-cron/  # Git submodule        
+      113 +│   ├── mitamae-plugin-resource-cron/  # Git submodule        
+          + (external)                                                   
+      114  │   └── mitamae-plugin-resource-ldap_object/                  
+      115  ├── lib/                           # Custom extensions        
+      116  │   ├── mitamae_ext.rb             # Removes sudo/doas        
+           (running as root)                                             
+     ...
+      137  │   ├── hocho_ext.rb               # OpenBSD compatibility    
+           (sh, doas)                                                    
+      138  │   └── hocho/inventory_providers/                            
+      139  │       └── yaml_dir.rb            # YAML directory inventory 
+            provider                                                     
+      140 -├── deploy/                        # WIP: Deploy mitamae with 
+          - mitamae                                                      
+      141 -│   ├── default.rb                 # Host definitions         
+      142 -│   ├── defines.rb                 # Custom defines (host,    
+          -run_on)                                                       
+      143 -│   ├── helpers.rb                 # Deployment helpers       
+      144 -│   └── recipes/                   # Per-host deployment      
+          -recipes                                                       
+      145 -├── dist/                          # Pre-compiled mitamae     
+          -binaries                                                      
+      146 -│   ├── mitamae-arm64-linux        # Linux ARM64              
+      147 -│   ├── mitamae-x86_64-linux       # Linux x86_64             
+      148 -│   ├── mitamae-arm64-openbsd      # OpenBSD ARM64            
+      149 -│   ├── mitamae-x86_64-openbsd     # OpenBSD x86_64           
+      150 -│   └── mitamae-x86_64-openbsd.old # Backup                   
+      151 -└── misc/                          # Reference materials (git 
+          - submodules)                                                  
+      152 -    ├── mitamae/                   # Mitamae source           
+      153 -    ├── sorah-cnw/                 # Example configs          
+      154 -    └── example-ruby-*/            # Ruby infra examples      
+      140 +└── misc/                          # Optional extras (run     
+          +`rake prepare` / `rake prepare:examples`)                     
+      141 +    ├── dist/                      # [worktree: dist branch]  
+          +Pre-compiled mitamae binaries                                 
+      142 +    ├── notes/                     # [worktree: notes branch] 
+          + LLM docs, project notes                                      
+      143 +    ├── mitamae/                   # [submodule] Mitamae      
+          +source (separate repo)                                        
+      144 +    └── examples/                  # [submodules] Example     
+          +mitamae projects                                              
+      145 +        ├── example-ruby-infra/                               
+      146 +        ├── example-ruby-git/                                 
+      147 +        └── sorah-cnw/                                        
+      148  ```                                                           
+      149                                                                
+      150 +**Branches:**                                                 
+      151 +- `master` - main cookbooks and config                        
+      152 +- `dist` - mitamae binaries (worktree at misc/dist)           
+      153 +- `notes` - documentation, LLM guidance (worktree at          
+          +misc/notes)                                                   
+      154 +- `feature/deploy` - WIP deploy-mitamae-with-mitamae          
+          +experiment                                                    
+      155 +                                                              
+      156  ### Cookbook Overview                                         
+      157                                                                
+      158  **Core Infrastructure:**                                      
+
+> secret management is gone from rakefile too btw 
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Removed 9 lines                                                     
+      23  rake prepare:examples                                          
+      24  ```                                                            
+      25                                                                 
+      26 -### Secrets Management                                         
+      27 -```bash                                                        
+      28 -# Decrypt secrets before working                               
+      29 -rake sops:decrypt                                              
+      30 -                                                               
+      31 -# Re-encrypt secrets after editing                             
+      32 -rake sops:encrypt                                              
+      33 -```                                                            
+      34 -                                                               
+      26  ### Deployment                                                 
+      27  ```bash                                                        
+      28  # List all hosts                                               
+
+● Now let me update the Reference Materials section:
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Added 2 lines, removed 2 lines                                      
+      230  ```                                                           
+      231                                                                
+      232  ### Reference Materials                                       
+      233 -- Mitamae source: `misc/mitamae/mrblib/mitamae/`              
+      234 -- Example configs: `misc/sorah-cnw/`                          
+      233 +- Mitamae source: `misc/mitamae/mrblib/mitamae/`              
+          + (run `rake prepare:examples` first)                          
+      234 +- Example configs: `misc/examples/` (sorah-cnw,               
+          +example-ruby-infra, example-ruby-git)                         
+      235                                                                
+      236  ## Common Issues and Solutions                                
+      237                                                                
+
+● Search(pattern: "deploy/", path: "misc/notes/CLAUDE.md", output_mode:
+        "content")
+  ⎿  Found 0 lines 
+
+● Done. Updated CLAUDE.md with:
+
+  - Note about worktree location at the top
+  - Added rake prepare / rake prepare:examples setup commands
+  - Removed sops rake tasks
+  - Updated directory structure (worktrees for dist/notes, submodule for mitamae, examples in misc/examples/)
+  - Added branch overview
+  - Updated reference materials paths
+
+  Go enjoy your energy drink and email servers.
+
+> notes regarding your CLAUDE.md:
+
+remove wireguard vpn and prosody xmpp sections from the top. you don't 
+describe any other piece of infra there, but mention those. why
+
+your cookbook overview need to be checked against README.md
+
+hocho integration section is probably outdated, secrets can live in *any* 
+.sops.yaml file now
+
+common issues and solutions section is useless.
+
+anything you want to ask about this project to add into your memory? 
+
+● Read(misc/notes/CLAUDE.md)
+  ⎿  Read 278 lines
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Removed 20 lines                                                    
+      44  bundle exec rubocop -a                                         
+      45  ```                                                            
+      46                                                                 
+      47 -### WireGuard VPN                                              
+      48 -                                                               
+      49 -Configured in `cookbooks/openbsd_wireguard/` for               
+         -server-to-server and client VPN connectivity.                  
+      50 -                                                               
+      51 -**Configuration:**                                             
+      52 -- Interface: wg0                                               
+      53 -- Config: `data/vars/wireguard.yml`,                           
+         -`data/vars/wireguard-keys.sops.yml`                            
+      54 -- Supports roaming peers, home network peers, local peers      
+      55 -                                                               
+      56 -### Prosody XMPP                                               
+      57 -                                                               
+      58 -Configured in `cookbooks/prosody/` for XMPP/Jabber instant     
+         -messaging.                                                     
+      59 -                                                               
+      60 -**Components:**                                                
+      61 -- Prosody XMPP server                                          
+      62 -- coturn (turnserver) - TURN server for NAT traversal          
+      63 -- Config: `data/vars/prosody.sops.yml`                         
+      64 -                                                               
+      65 -**Note:** restund is broken on ARM64 and not currently used.   
+      66 -                                                               
+      47  ## Architecture                                                
+      48                                                                 
+      49  ### Mitamae vs Chef                                            
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Added 15 lines, removed 20 lines                                    
+      108  ### Cookbook Overview                                         
+      109                                                                
+      110  **Core Infrastructure:**                                      
+      111 -- **openbsd_server** - Base config (vim, DNS, network,        
+          -sysctl) + shared defines.rb (sysctl, newsyslog_snippet,       
+          -notify!)                                                      
+      112 -- **openbsd_admin** - Admin tools (git, zsh, doas,            
+          -SSH hardening)                                                
+      113 -- **openbsd_com0** - Serial console configuration             
+      114 -- **pf** - Packet filter firewall + pf_open define            
+      111 +- **openbsd_server** - Base config, reasonable defaults,      
+          +shared defines.rb                                             
+      112 +- **openbsd_admin** - Admin tools (vim, htop, ncdu, doas,     
+          +HISTFILE)                                                     
+      113 +- **pf** - Packet filter firewall, configurable logging       
+      114                                                                
+      115  **DNS & Certificates:**                                       
+      116 -- **knot** - Knot DNS with DNSSEC                             
+      117 -- **lego** - Unified ACME cert management (lego_cert          
+          -resource, cert_group.rb)                                      
+      116 +- **knot** - Authoritative DNS with primary/secondary AXFR    
+      117 +- **lego** - ACME cert management (dns-01 for wildcards)      
+      118                                                                
+      119  **Mail:**                                                     
+      120 -- **smtpd** - OpenSMTPD with DKIM                             
+      120 +- **smtpd** - OpenSMTPD mail transport                        
+      121  - **dovecot** - IMAP/LMTP with sieve                          
+      122                                                                
+      123  **Web:**                                                      
+      124 -- **httpd** - OpenBSD httpd + relayd (TLS termination)        
+      125 -- **site_main** - Primary website (cgit, gotwebd)             
+      126 -- **site_box_boot** - iPXE/UEFI HTTP Boot hosting             
+      127 -- **site_box_main** - Main b0x.pw site                        
+      128 -- **site_box_post** - Mail/postal services site               
+      129 -- **site_fqdn** - Per-host dynamic configuration              
+      124 +- **httpd** - relayd (TLS) + httpd (serving)                  
+      125 +- **site_main** - Main site + git hosting                     
+      126 +- **site_fqdn** - Default response for FQDN/IP requests       
+      127 +- **site_box_*** - b0x.pw service landing pages (main, boot,  
+          +post, talk)                                                   
+      128                                                                
+      129  **Communication:**                                            
+      130 -- **prosody** - XMPP/Jabber server (includes coturn.rb        
+          -sub-recipe)                                                   
+      130 +- **prosody** - XMPP server                                   
+      131 +- **openbsd_wireguard** - WireGuard VPN (internal backbone)   
+      132                                                                
+      133 -**Networking:**                                               
+      134 -- **openbsd_wireguard** - WireGuard VPN                       
+      135 -                                                              
+      133  **Other:**                                                    
+      134 -- **ldap** - OpenLDAP directory                               
+      135 -- **gopher** - Gopher server (geomyidae)                      
+      136 -- **dickd** - Custom telnet daemon                            
+      134 +- **ldap** - OpenLDAP for unified auth (WIP)                  
+      135 +- **gopher** - Gopher server                                  
+      136 +- **dickd** - ASCII art telnet service                        
+      137                                                                
+      138  ### Hocho Integration                                         
+      139                                                                
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Added 5 lines, removed 18 lines                                     
+      142  Key files:                                                    
+      143  - `hocho.yml`: Defines inventory providers, property          
+           providers, and driver options                                 
+      144  - `data/hosts/*/default.yml`: Host properties and run_list    
+      145 -- `data/hosts/*/secrets.sops.yml`: SOPS-encrypted             
+          -host-specific secrets (SSH credentials, network config)       
+      146 -- `data/vars/*.yml`: Global variables split by domain         
+          -(default, knot, mail, wireguard, prosody)                     
+      147 -- `data/vars/secrets.sops.yml`: Encrypted global secrets      
+      145 +- `data/vars/*.yml`: Global variables split by domain         
+      146 +- `*.sops.yml`: SOPS-encrypted secrets (can live anywhere in  
+          +data/)                                                        
+      147                                                                
+      148  Custom extensions in `lib/`:                                  
+      149 -- **`mitamae_ext.rb`**: Removes sudo/doas command wrapping (  
+          -since we connect as root directly)                            
+      150 -  - Overrides `build_command` to skip user switching          
+      151 -  - Connects node object to backend for custom resource       
+          -access                                                        
+      149 +- **`mitamae_ext.rb`**: Removes sudo/doas wrapping (connects  
+          +as root directly)                                             
+      150  - **`mitamae_defines.rb`**: Custom resource definitions       
+           (block_in_file, lines_in_file, notify!)                       
+      151 -- **`hocho_ext.rb`**: Patches hocho for OpenBSD compatibility 
+          - (loaded via `bin/hocho:28` binstub)                          
+      152 -  - Uses `sh` instead of `bash`                               
+      153 -  - Customizes rsync sync (only cookbooks, lib, plugins       
+          -directories)                                                  
+      154 -- **`yaml_dir.rb`**: Custom inventory provider that loads     
+          -hosts from YAML directory structure                           
+      151 +- **`hocho_ext.rb`**: OpenBSD compatibility patches (sh       
+          +instead of bash, rsync tweaks)                                
+      152 +- **`yaml_dir.rb`**: Custom inventory provider for YAML       
+          +directory structure                                           
+      153                                                                
+      154 -Configuration flow:                                           
+      155 -1. `bin/hocho` binstub loads `hocho_ext.rb` (OpenBSD patches) 
+      156 -2. Hocho reads `hocho.yml` configuration                      
+      157 -3. `hocho.yml` initializers load `mitamae_ext.rb` and         
+          -`mitamae_defines.rb`                                          
+      158 -4. Loads host inventory via `yaml_dir` provider from          
+          -`data/hosts/*/`                                               
+      159 -5. Applies property providers to set defaults                 
+          -(`sudo_required: false`, `ssh_options.user: root`)            
+      160 -6. Executes mitamae driver, connecting as root directly (no   
+          -sudo/doas needed)                                             
+      161 -                                                              
+      154  ### Custom Plugins                                            
+      155                                                                
+      156  #### openbsd_package                                          
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Removed 43 lines                                                     
+      194  ### Reference Materials                                       
+      195  - Mitamae source: `misc/mitamae/mrblib/mitamae/` (run `rake   
+           prepare:examples` first)                                      
+      196  - Example configs: `misc/examples/` (sorah-cnw,               
+           example-ruby-infra, example-ruby-git)                         
+      197 -                                                              
+      198 -## Common Issues and Solutions                                
+      199 -                                                              
+      200 -### Resource Actions and Subscriptions                        
+      201 -                                                              
+      202 -When using `subscribes` with resources, you must specify the  
+          -action that the **subscribing resource** should take, not the 
+          - action of the watched resource.                              
+      203 -                                                              
+      204 -**Incorrect:**                                                
+      205 -```ruby                                                       
+      206 -template "/path/to/file" do                                   
+      207 -  subscribes :run, 'local_ruby_block[trigger]'  # ❌           
+          -templates don't have :run action                              
+      208 -end                                                           
+      209 -```                                                           
+      210 -                                                              
+      211 -**Correct:**                                                  
+      212 -```ruby                                                       
+      213 -template "/path/to/file" do                                   
+      214 -  subscribes :create, 'local_ruby_block[trigger]'  # ✅ use    
+          -the template's action                                         
+      215 -end                                                           
+      216 -```                                                           
+      217 -                                                              
+      218 -### SSH Configuration                                         
+      219 -                                                              
+      220 -In host secrets files, use `host_name` (with underscore) for  
+          -net-ssh compatibility:                                        
+      221 -                                                              
+      222 -**Incorrect:**                                                
+      223 -```yaml                                                       
+      224 -ssh_options:                                                  
+      225 -  hostname: 192.0.2.1  # ❌ invalid net-ssh option             
+      226 -```                                                           
+      227 -                                                              
+      228 -**Correct:**                                                  
+      229 -```yaml                                                       
+      230 -properties:                                                   
+      231 -  addr: 192.0.2.1      # ✅ use addr in properties             
+      232 -ssh_options:                                                  
+      233 -  host_name: 192.0.2.1 # ✅ or use host_name in ssh_options    
+      234 -  port: 22                                                    
+      235 -```                                                           
+      236 -                                                              
+      237 -### Running as Root                                           
+      238 -                                                              
+      239 -This configuration connects as root directly                  
+          -(`ssh_options.user: root`) and has `sudo_required: false`.    
+          -The `mitamae_ext.rb` monkey patch removes all sudo/doas       
+          -wrapping since it's unnecessary when already running as root. 
+
+● Done. Cleaned up the file significantly.
+
+  Questions for my memory:
+
+  1. Deployment workflow - Do you decrypt sops manually before hocho apply, or is that handled automatically somehow now?
+  2. f0rk vs airstrip3 - Primary/secondary for everything, or do they diverge? (e.g., does a3 only do DNS/mail relay, or does it have its own services?)
+  3. Testing changes - Dry-run only, or do you have a staging VM / local test setup?
+  4. Any "don't touch this" areas - Code that looks weird but works, fragile bits, or things that break in non-obvious ways?
+
+> 1. automatically in yaml_dir inventory provider. it checks filename and 
+runs popen3(sops -d)
+2. they differ. f0 has 8Gb of ram and 256Mb drive, it's an arm64 machine. a3
+ is 1Gb ram and 20Gb drive, x86_64. so i don't see much point in loading 
+weaker one (funnies fucking thing is that they both cost 6euro/mo).
+3. i have nothing, i test with dry-run and pure luck. we brainstormed a test
+ solution, see misc/notes
+4. none that i can think of. i mean, mitamae's `notification` system is 
+broken in various places, for example i have no fucking clue why my pfctl 
+doesn't load new pf.conf, even when i see notification going there in logs. 
+but everything should be malleable, we're not at the point where we arrived 
+at good, ideal even, abstractions for this problem domain. dunno, man, you 
+tell me? is there weird bits? 
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿ Tool use rejected with user message: misc/notes/TEST_PLAN.md. be sure to 
+    read it, i g.
+
+● Read(misc/notes/TEST_PLAN.md)
+  ⎿  Read 629 lines
+
+● That's a solid test plan. Now let me update CLAUDE.md properly:
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Added 13 lines                                                      
+      194  ### Reference Materials                                       
+      195  - Mitamae source: `misc/mitamae/mrblib/mitamae/` (run `rake   
+           prepare:examples` first)                                      
+      196  - Example configs: `misc/examples/` (sorah-cnw,               
+           example-ruby-infra, example-ruby-git)                         
+      197 +                                                              
+      198 +## Operational Notes                                          
+      199 +                                                              
+      200 +**Secrets handling:** SOPS decryption is automatic -          
+          +`yaml_dir.rb` inventory provider detects `*.sops.yml` files   
+          +and runs `popen3(sops -d)`.                                   
+      201 +                                                              
+      202 +**Server roles:**                                             
+      203 +- **f0rk** (arm64, 8GB RAM, 256GB disk) - Primary, runs       
+          +everything                                                    
+      204 +- **airstrip3** (x86_64, 1GB RAM, 20GB disk) - Secondary      
+          +DNS/mail relay only                                           
+      205 +                                                              
+      206 +**Testing:** No staging environment. Use `hocho apply         
+          +--dry-run`. See `misc/notes/TEST_PLAN.md` for planned         
+          +libvirt-based test infrastructure (serverspec tests against   
+          +isolated OpenBSD VMs).                                        
+      207 +                                                              
+      208 +**Known issues:**                                             
+      209 +- Mitamae's notification system is unreliable in places       
+          +(e.g., pfctl reload notifications appear in logs but don't    
+          +actually trigger)                                             
+
+● Done.
+
+  As for weird bits I've noticed:
+
+  1. lib/ monkey-patches are heavy - You're patching hocho/mitamae internals (build_command, SSH driver, rsync behavior). Works, but fragile if upstream changes. Worth a comment like "tested against hocho X.Y.Z" somewhere?
+  2. The pfctl notification issue - You mentioned it. Could be a mitamae bug, or could be the resource not actually changing (so no notification fires). Have you tried action :nothing + explicit notifies from the config file resource?
+  3. defines.rb pattern - You have defines.rb in multiple cookbooks (pf, openbsd_server) that define shared resources. It's a bit scattered - might want a central lib/defines/ or just document which cookbook owns which define.
+  4. httpd listens on 16080/16081 - Non-standard ports with relayd in front. Makes sense but easy to forget when debugging. Maybe worth a one-liner in the httpd cookbook README?
+
+  Nothing that screams "don't touch" though. The codebase is pretty readable.
+
+> not sure if we need to document mitamae quirks, because, if you re-read 
+readme, i left plenty of comments there.
+1. YES, because serverinfra assumes linux server with sudo.
+2. huh? so when resource doesn't change notification doesn't fire? wait, 
+what about only_if blocks? i have couple in `service` definitions to check 
+syntax on demons to stop them leaving in broken state.
+another issue is notification consolidation - prosdody cookbook calls 
+pf_open (for port opening) like 8 times. and i see 8 notifications to 
+pf.conf. is it normal?
+3. defines.rb is just convenient name for `public defines of this cookbook`.
+ lumping them altogether makes no sense, since they depend on particular 
+services (they need to notify after file updates).
+4. documented in readme.md and those ports are put in shared between relayd 
+and httpd macro file. it's fine. i also thought of using ips instead of 
+ports, like 127.0.0.80 and 127.0.4.43 (you can't have ip address ending in 
+443 ;_;), but not sure i wanna debug issues on lo0. 
+
+● On notifications:
+
+  Resource unchanged = no notification - Yes, that's standard Chef/mitamae behavior. If the resource is already in desired state, it doesn't "update," so subscribers don't fire. The only_if/not_if guards also prevent the resource from running entirely if they fail.
+
+  8 pf_open = 8 notifications? - That's the bug. In Chef, notifications are deduplicated: same resource + same action = runs once at the end. If you're seeing 8 notifications in logs, either:
+  - mitamae doesn't deduplicate (possible, it's "mini" after all)
+  - each pf_open is notifying a different resource (typo in resource name?)
+  - the notifications are :immediately instead of :delayed
+
+  Worth checking:
+  # Are all 8 of these notifying the exact same string?
+  notifies :reload, 'service[pf]', :delayed
+  # vs maybe some have
+  notifies :reload, 'service[pf]'  # defaults to :delayed but maybe mitamae differs?
+
+  If mitamae genuinely doesn't deduplicate delayed notifications, that's a real limitation worth documenting. You could work around with a single local_ruby_block that collects "pf needs reload" flag and one subscriber that checks it.
+
+  ---
+  RE: 127.0.4.43 - yeah, max octet is 255. You could do 127.0.1.80 / 127.0.1.443... wait no, still 443 > 255. 127.80.0.1 and 127.44.3.1? Getting cursed at this point.
+
+> dunno, man you can go look at that define. and i already had combining 
+local_ruby_block at some point, i think. maybe not for PF, but somewhere 
+here.
+they are :delayed and i see them as :delayed in logs, but - bummer.
+
+in a perfect world, recipe would just own node[] keys and react when i put 
+data there. but i can only dream. 
+
+● Search(pattern: "pf_open")
+  ⎿  Found 11 files (ctrl+o to expand)
+
+● Read(cookbooks/pf/defines.rb)
+  ⎿  Read 38 lines
+
+● Search(pattern: "def notify!", output_mode: "content")
+  ⎿  Found 0 lines 
+
+● Search(pattern: "notify!", output_mode: "content")
+  ⎿  Found 10 lines (ctrl+o to expand)
+
+● Read(lib/mitamae_defines.rb)
+  ⎿  Read 84 lines
+
+● So the notify! define creates a local_ruby_block with a deterministic name:
+
+  local_block_name = "notify!create@template[/etc/pf.conf]"
+
+  Every pf_snippet call generates the same block name. In Chef, redefining a resource with the same name merges/updates it - you'd get one block, one notification.
+
+  The question is: does the template actually run 8 times, or just log 8 notifications but run once?
+
+  If it's actually running 8 times, mitamae might be:
+  1. Creating 8 separate local_ruby_block resources (not deduplicating by name)
+  2. Not deduplicating delayed notifications
+
+  Could test with a dumb counter:
+  template "/etc/pf.conf" do
+    action :nothing
+    # ...
+    notifies :run, "execute[reload_pf]"
+    notifies :run, "execute[pf_render_count]"  # add this
+  end
+
+  execute "pf_render_count" do
+    action :nothing
+    command "echo $(date) >> /tmp/pf_render_count"
+  end
+
+  Then check /tmp/pf_render_count after a run.
+
+  ---
+  in a perfect world, recipe would just own node[] keys and react when i put data there
+
+  Yeah, that's the dream - declarative data, reactive rendering. You're halfway there with node[:pf_snippets] array. The missing piece is "template subscribes to node[:pf_snippets] changes" which... doesn't exist in this model.
+
+> notify! exists because you can't use :notifies from :define 
+
+● Ah, right - define is a compile-time macro, not a real resource. It doesn't have notifies because there's no resource instance to attach the notification to.
+
+  So notify! is a workaround: wrap the notification in a local_ruby_block (which IS a resource) just to get access to notifies.
+
+  That's worth documenting:
+
+  # Can't do this in a define:
+  define :foo do
+    notifies :reload, "service[bar]"  # ERROR: no method 'notifies'
+  end
+
+  # So we do this instead:
+  define :foo do
+    notify! "reload@service[bar]"  # creates a local_ruby_block that can notifies
+  end
+
+  The 8-notifications issue then comes down to whether mitamae deduplicates those local_ruby_block resources by name, or creates 8 separate ones. If it's 8 separate blocks, each fires its own notification, and if delayed notifications aren't deduplicated either... you get 8 template renders.
+
+  Might be worth checking mitamae source for how it handles duplicate resource names. Or just accept the tax and move on - 8 renders of the same template is wasteful but not broken.
+
+> okay, let's do two things:
+1. document common pattern of pushing data to arrays and then notifying 
+templates to render
+with examples from various cookbooks
+2. document notify! define and why it exists
+
+...
+
+
+wait, maybe i SHOULDNT do that? call notify from define block? i should make
+ a static resource in :define block i use an notify from it?
+but then again, how it differs from notify! macro that creates 
+local_ruby_block with deterministic name?
+
+shit's strange. and only _some_ of those are broken, i think.
+
+i'm going to paste you mitamae output after i applied it, AND THEN APPLIED 
+again. this is second run on freshly refreshed resources. so NOTHING should 
+be changed, right?
+
+=> Running on f0rk using mitamae
+=> $ rsync -a --copy-links --copy-unsafe-links --delete --rsh ssh\ -o\ 
+\"PubkeyAuthentication\=yes\"\ -o\ \"PasswordAuthentication\=yes\"\ -o\ 
+\"PreferredAuthentications\=none,publickey,password,keyboard-interactive\"\ 
+-o\ \"Compression\=yes\"\ -o\ \"IdentitiesOnly\=yes\"\ -o\ 
+\"StrictHostKeyChecking\=accept-new\"\ -o\ \"User\=root\"\ -o\ 
+\"HostName\=152.53.60.123\"\ -o\ \"Port\=38322\" cookbooks lib plugins 
+152.53.60.123:/tmp/hocho-run-TDD6XFMMx/itamae
+$ test -x /usr/local/bin/mitamae
+$ umask 0077 && cat > /tmp/hocho-run-TDD6XFMMx/node.json
+=> f0rk # /usr/local/bin/mitamae local -j /tmp/hocho-run-TDD6XFMMx/node.json
+ lib/mitamae_ext.rb lib/mitamae_defines.rb 
+cookbooks/openbsd_server/default.rb cookbooks/openbsd_wireguard/default.rb 
+cookbooks/pf/default.rb cookbooks/openbsd_admin/default.rb 
+cookbooks/knot/default.rb cookbooks/lego/default.rb 
+cookbooks/httpd/default.rb cookbooks/dickd/default.rb 
+cookbooks/smtpd/default.rb cookbooks/dovecot/default.rb 
+cookbooks/site_fqdn/default.rb cookbooks/site_main/default.rb 
+cookbooks/site_box_main/default.rb cookbooks/site_box_post/default.rb 
+cookbooks/site_box_talk/default.rb cookbooks/site_box_boot/default.rb 
+cookbooks/gopher/default.rb cookbooks/prosody/default.rb
+$ sh
+[f0rk]  INFO : Starting mitamae...
+[f0rk]  INFO : Recipe: /tmp/hocho-run-TDD6XFMMx/itamae/lib/mitamae_ext.rb
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/lib/mitamae_defines.rb
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/openbsd_server/default.rb
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/openbsd_server/defines.rb
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/pf/defines.rb
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/openbsd_wireguard/default.rb
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/pf/default.rb
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/openbsd_admin/default.rb
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/knot/default.rb
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/lego/default.rb
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/lego/cert_group.rb
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/lego/lego_cert.rb
+[f0rk]  INFO :   lego certificate renewal updated crontab entry
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/httpd/default.rb
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :     local_ruby_block[notify!create@template[/etc/pf.conf]] 
+executed will change from 'false' to 'true'
+[f0rk]  INFO :     Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :       
+local_ruby_block[notify!create@template[/etc/newsyslog.conf]] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :       Notifying create to template resource 
+'/etc/newsyslog.conf' (delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/dickd/default.rb
+[f0rk]  INFO :       
+local_ruby_block[notify!create@template[/etc/inetd.conf]] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :       Notifying create to template resource '/etc/inetd.conf'
+ (delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/smtpd/default.rb
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/smtpd/mailpasswd_group.rb
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/dovecot/vmail_user.rb
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/dovecot/default.rb
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_fqdn/default.rb
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_main/default.rb
+[f0rk]  INFO :     
+local_ruby_block[notify!create@template[/etc/relayd.conf]] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :     Notifying create to template resource '/etc/relayd.conf' 
+(delayed)
+[f0rk]  INFO :     local_ruby_block[notify!create@template[/etc/httpd.conf]]
+ executed will change from 'false' to 'true'
+[f0rk]  INFO :     Notifying create to template resource '/etc/httpd.conf' 
+(delayed)
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_main/git.rb
+[f0rk]  INFO :     execute[set gitdaemon flags] executed will change from 
+'false' to 'true'
+[f0rk]  INFO :     Notifying restart to service resource 'gitdaemon' 
+(delayed)
+[f0rk]  INFO :     execute[set gitdaemon user] executed will change from 
+'false' to 'true'
+[f0rk]  INFO :     Notifying restart to service resource 'gitdaemon' 
+(delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :     service[gitdaemon] restarted will change from 'false' to 
+'true'
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_main/cgit.rb
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_main/gotweb.rb
+[f0rk]  INFO :       
+local_ruby_block[notify!create@template[/etc/newsyslog.conf]] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :       Notifying create to template resource 
+'/etc/newsyslog.conf' (delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_box_main/default.rb
+[f0rk]  INFO :       
+local_ruby_block[notify!create@template[/etc/newsyslog.conf]] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :       Notifying create to template resource 
+'/etc/newsyslog.conf' (delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_box_post/default.rb
+[f0rk]  INFO :       
+local_ruby_block[notify!create@template[/etc/newsyslog.conf]] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :       Notifying create to template resource 
+'/etc/newsyslog.conf' (delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_box_talk/default.rb
+[f0rk]  INFO :       
+local_ruby_block[notify!create@template[/etc/newsyslog.conf]] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :       Notifying create to template resource 
+'/etc/newsyslog.conf' (delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/site_box_boot/default.rb
+[f0rk]  INFO :       
+local_ruby_block[notify!create@template[/etc/newsyslog.conf]] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :       Notifying create to template resource 
+'/etc/newsyslog.conf' (delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/gopher/default.rb
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO : Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/prosody/default.rb
+[f0rk]  INFO :   Recipe: 
+/tmp/hocho-run-TDD6XFMMx/itamae/cookbooks/prosody/coturn.rb
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :           
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :           Notifying create to template resource 
+'/etc/pf.conf' (delayed)
+[f0rk]  INFO :     execute[prosody_user maniac@pzskc383.dp.ua] executed will
+ change from 'false' to 'true'
+[f0rk]  INFO :     execute[prosody_user maniac@pzskc383.net] executed will 
+change from 'false' to 'true'
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+[f0rk]  INFO :         
+local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change 
+from 'false' to 'true'
+[f0rk]  INFO :         Notifying create to template resource '/etc/pf.conf' 
+(delayed)
+=> f0rk $ rm -rf /tmp/hocho-run-TDD6XFMMx/itamae
+$ rm -rf /tmp/hocho-run-TDD6XFMMx/itamae 
+
+● There's the bug. Look at notify!:
+
+  local_ruby_block local_block_name do
+    block { true }  # <-- THIS
+    notifies ...
+  end
+
+  The block returns true, and local_ruby_block considers "did the block return something?" as "did it change?". Since { true } always returns true, it always reports as changed:
+
+  local_ruby_block[notify!create@template[/etc/pf.conf]] executed will change from 'false' to 'true'
+
+  Every. Single. Time.
+
+  Try changing to an empty block or returning nil:
+
+  local_ruby_block local_block_name do
+    block { nil }  # or just: block { }
+    notifies ...
+  end
+
+  Or even better - local_ruby_block might have an action :nothing + explicit trigger pattern that would work here, but I'd need to check mitamae's implementation.
+
+  ---
+  Also suspicious:
+  - execute[set gitdaemon flags] and execute[set gitdaemon user] firing on second run - those should be idempotent
+  - execute[prosody_user maniac@...] firing - same issue
+
+  Those execute resources probably need not_if guards to check if the state is already correct.
+
+> both of those are actually idempotent under the hood, so i didn't bother. 
+nice to have, not critical.
+and prosody... damn, basically you need to either do stupid shit with grep 
+and such. OR, popen2 `prosodyctl shell` and pipe lua code there.
+i started with easier solution.
+
+let's look at mitamae!
+
+also, fuck, i accidently pruned feature/deploy branch from server ;_; any 
+chance to find it? 
+
+● For the branch - check locally first:
+
+  # Local reflog might still have it
+  git reflog | grep deploy
+
+  # Or find dangling commits
+  git fsck --lost-found --unreachable | grep commit
+
+  # If you had it checked out recently
+  git log --walk-reflogs --all --oneline | grep deploy
+
+  If it was only on the server and you pruned it there, check if the server has reflog enabled (usually not for bare repos by default, but worth a shot):
+
+  ssh your-server 'cd /path/to/repo.git && git reflog'
+
+  If none of that works and it was never fetched locally... it's gone unless you have backups of the git dir.
+
+  ---
+  For mitamae source - want me to look at how local_ruby_block determines "changed" state? I can check misc/mitamae if you have the worktree set up, or we can look at the upstream repo.
+
+> i did fresh clones when running git-filter-repo and my last one didn't 
+have remote branches checked out... so when i did `git push --prune` it 
+removed it from server.
+
+WAIT. i see a rev-list in my 'unreachable commits'. now, how do i apply 
+those back...
+
+```
+% git fsck --lost-found --unreachable | grep commit
+Checking ref database: 100% (1/1), done.
+Checking object directories: 100% (256/256), done.
+Checking objects: 100% (2001/2001), done.
+unreachable commit e5908a5a33b9ce085afea783f15cbf461d4533fc
+unreachable commit 7ab34ca81b521e88345fd2446c6a191b3cf2f682
+unreachable commit 7cd4dfa3ed352b0e203928fe2ed12899a63989a3
+unreachable commit 7f56053aa17c654c0bb71c4f1d7ccacb676b4519
+unreachable commit 8137cd34135a3469671d8f35c2025ba344f1847c
+unreachable commit 6b684cf97cf398d4fe5f81652488ac522331e18b
+unreachable commit d2bb855cf8980290d61e72a33445c433d6f43ae3
+unreachable commit b61c3764cd095226a50e2ee9cb5e503eaabc57cc
+unreachable commit d66de9d93c9f11bb36307fb01c77ee3d4abaa77b
+unreachable commit 824fc9ddb01de7aaf0772771952b02ecf9a8dff0
+unreachable commit f63f7c14323358f44a1a08979e48de39155fa083
+```
+
+and yeah, mitamae checked out and compiled, you're free to browse. 
+
+● Nice! Check which one is the deploy branch tip:
+
+  # Look at each commit to find deploy-related ones
+  git log --oneline --no-walk e5908a5 7ab34ca 7cd4dfa 7f56053 8137cd3 6b684cf d2bb855 b61c376 d66de9d 824fc9d f63f7c1
+
+  # Or more detail
+  for c in e5908a5 7ab34ca 7cd4dfa 7f56053 8137cd3 6b684cf d2bb855 b61c376 d66de9d 824fc9d f63f7c1; do
+    echo "=== $c ==="
+    git log -1 --oneline $c
+    git diff-tree --no-commit-id --name-only -r $c | head -3
+  done
+
+  Once you find the tip (probably the one with deploy/ files and no children in that list):
+
+  # Resurrect it
+  git branch feature/deploy <commit-hash>
+
+  # Push it back
+  git push origin feature/deploy
+
+> they ALL touch deploy.. i need to find latest.. aha, done, rebased to 
+master. deployed.
+
+OKAY. why it tries to clean all server branches even after i ran `git 
+fetch`? shouldn't it _fetch_ remote server branches to local or smth?
+
+```
+~% git clone git@pzskc383.net:obsd-mitamae tmp/mitamae-test                 
+                               
+Cloning into 'tmp/mitamae-test'...                                          
+                              
+remote: Enumerating objects: 2020, done.
+remote: Counting objects: 100% (2020/2020), done.
+remote: Compressing objects: 100% (970/970), done.
+remote: Total 2020 (delta 896), reused 1945 (delta 870), pack-reused 0 (from
+ 0)
+Receiving objects: 100% (2020/2020), 6.64 MiB | 1.26 MiB/s, done.
+Resolving deltas: 100% (896/896), done.
+~% cd tmp/mitamae-test 
+~/tmp/mitamae-test git: % git push --dry-run --prune --branches
+To pzskc383.net:obsd-mitamae
+ - [deleted]         WIP/self-deploy
+ - [deleted]         dist
+ - [deleted]         notes
+``` 
+
+● git clone only creates a local branch for the default branch (master). The others exist only as remote-tracking refs (origin/dist, origin/notes, etc.), not local branches.
+
+  git push --prune --branches means: "delete remote branches that have no matching local branch."
+
+  Since you only have master locally, it wants to nuke everything else.
+
+  # What you have after clone:
+  git branch          # master (local)
+  git branch -r       # origin/master, origin/dist, origin/notes, origin/WIP/self-deploy (remote-tracking)
+
+  # git fetch doesn't create local branches, just updates remote-tracking refs
+
+  Safe options:
+
+  1. Don't use --prune (or be very careful with it)
+  2. Create local tracking branches for everything you want to keep:
+  git branch dist origin/dist
+  git branch notes origin/notes
+  # etc
+  3. Use git push origin --prune :<branch> to explicitly delete specific branches only
+
+  The foot-gun is that --prune compares against local branches, not remote-tracking refs. It's designed for "my local branches are the source of truth, delete everything else" workflows.
+
+> damn.. OKAY. i used --prune as a leftover in my brains after filter-repo. 
+wrong choice.
+
+now, let's get back at mitamae sources and look what it does to 
+notifications and local_ruby_block?
+
+meanwhile i'm gonna add some rake tasks to rake file 
+
+● Bash(find /home/alex/dev/obsd-mitamae/misc/mitamae -name "*.rb" | head -20)
+  ⎿  /home/alex/dev/obsd-mitamae/misc/mitamae/build_config.rb          
+     /home/alex/dev/obsd-mitamae/misc/mitamae/mrblib/mitamae.rb
+     /home/alex/dev/obsd-mitamae/misc/mitamae/mrblib/mitamae/backend.rb
+     … +28 lines (ctrl+o to expand)
+
+● Read(misc/mitamae/mrblib/mitamae/notification.rb)
+  ⎿  Read 55 lines
+
+● Search(pattern: "**/local_ruby_block*.rb", path: "misc/mitamae")
+  ⎿  Found 4 files (ctrl+o to expand)
+
+● Read(misc/mitamae/mrblib/mitamae/resource/local_ruby_block.rb)
+  ⎿  Read 11 lines
+
+● Read(misc/mitamae/mrblib/mitamae/resource_executor/local_ruby_block.rb)
+  ⎿  Read 34 lines
+
+● Found it! Look at the executor:
+
+  def set_current_attributes(current, action)
+    when :run
+      current.executed = false  # ALWAYS false
+  end
+
+  def set_desired_attributes(desired, action)
+    when :run
+      desired.executed = true   # ALWAYS true
+  end
+
+  local_ruby_block is designed to always report as "changed" - current is always false, desired is always true. It's a "run this code" resource, not an idempotent state resource.
+
+  So your notify! define is fundamentally broken for this use case - every local_ruby_block always fires its notifications.
+
+  Let me check if delayed notifications are at least deduplicated:
+
+● Read(misc/mitamae/mrblib/mitamae/recipe_executor.rb)
+  ⎿  Read 44 lines
+
+● Line 37:
+
+  node.delayed_notifications.uniq { |n| [n.action, n.action_resource] }.each do |notification|
+
+  Delayed notifications ARE deduplicated by [action, resource]... but only per recipe node. Each cookbook that runs execute_children will:
+  1. Collect its own delayed notifications
+  2. Deduplicate within that scope
+  3. Execute them
+  4. Then the next cookbook runs its own batch
+
+  So if prosody/default.rb queues 9 notifications to template[/etc/pf.conf], they get deduplicated to 1 within that cookbook. But then gopher/default.rb queues another one, and at the end of that recipe it runs the template again.
+
+  The deduplication is per-recipe-scope, not global.
+
+● Search(pattern: "delayed_notifications", path: "misc/mitamae/mrblib",
+        output_mode: "content")
+  ⎿  Found 6 lines (ctrl+o to expand)
+
+● Read(misc/mitamae/mrblib/mitamae/resource_executor/base.rb)
+  ⎿  Read 33 lines
+
+● So the picture is:
+
+  1. local_ruby_block always "changes" - by design, current.executed = false, desired.executed = true
+  2. Notifications logged when queued (line 206) - that's why you see 30+ "Notifying create to template..." messages
+  3. Deduplication is per-recipe - @resource.recipe.delayed_notifications pushes to the recipe that owns the resource, then uniq at the end of that recipe
+  4. But template might still be idempotent - even if triggered multiple times, if the content hasn't changed, the template resource itself might not report as "changed"
+
+  Let me check if template has its own change detection:
+
+● Read(misc/mitamae/mrblib/mitamae/resource_executor/base.rb)
+  ⎿  Read 80 lines
+
+● Search(pattern: "def updated\?", path: "misc/mitamae/mrblib", output_mode:
+        "content")
+  ⎿  Found 6 lines (ctrl+o to expand)
+
+● Search(pattern: "@updated\s*=", path:
+        "misc/mitamae/mrblib/mitamae/resource_executor/base.rb", output_mode:
+        "content")
+  ⎿  Found 11 lines (ctrl+o to expand)
+
+● Search(pattern: "updated!", path: "misc/mitamae/mrblib", output_mode:
+        "content")
+  ⎿  Found 9 lines (ctrl+o to expand)
+
+● Read(misc/mitamae/mrblib/mitamae/resource_executor/base.rb)
+  ⎿  Read 40 lines
+
+● Found it. Line 86-88:
+
+  if different?
+    updated!
+  end
+
+  And different? checks if current[key] != desired[key] for any attribute.
+
+  For local_ruby_block:
+  - current.executed = false (always)
+  - desired.executed = true (always)
+  - different? → always true
+  - updated! → always called
+  - notifications → always fire
+
+  It's baked into mitamae's design. local_ruby_block is not meant to be idempotent.
+
+  But here's the saving grace: when the template is triggered, IT checks if content changed:
+
+● Read(misc/mitamae/mrblib/mitamae/resource_executor/file.rb)
+  ⎿  Read 193 lines
+
+● The template is idempotent! Look at lines 104-125:
+
+  def compare_file
+    @modified = false
+    # ...
+    case run_command(["diff", "-q", compare_to, @temppath], error: false).exit_status
+    when 1
+      @modified = true  # only if diff found
+    end
+  end
+
+  And line 20-27:
+  if @modified
+    # ... copy file ...
+    updated!  # only if content actually changed
+  end
+
+  So the chain is:
+  1. local_ruby_block → always fires (broken by design)
+  2. Logs "Notifying create to template..." 30 times (noise)
+  3. Template renders 30 times (wasteful but harmless)
+  4. Template compares with diff -q each time
+  5. Template only calls updated! if content differs
+  6. execute[reload_pf] only fires if template was updated!
+
+  End result: pfctl reload should only happen if pf.conf actually changes. But you're paying the cost of 30 template renders and diffs.
+
+  The noise and wasted work is the problem, not correctness. Fix would be to not use local_ruby_block for notify!, or accept the tax.
+
+> right. so we should.. i don't even know how to fix that easilty tbh in 
+this environment. turn 8 notify! blocks into 8 template blocks? but you need
+ to _place_ them somewhere, as _files_. and then combine in template file 
+(not all software bother to implement 'include dir/*'). 
+
+this is critical tbh. i need that shit (cookbooks reporting their data to 
+other cookbooks and them updating resouces) all over the place.
+we need to get it right. 
+
+● Yeah, this is a fundamental design issue. Let me think through the options:
+
+  The core problem: You want "collect data from many places, render once at the end, reload if changed."
+
+  Current flow:
+  cookbook A: push data → notify! → template queued
+  cookbook B: push data → notify! → template queued (again)
+  ...
+  end of each cookbook: render template (wasteful)
+
+  Ideal flow:
+  cookbook A: push data
+  cookbook B: push data
+  ...
+  end of run: render template once → reload if changed
+
+  Option 1: Finalize recipe
+
+  Remove all notify! calls. Just push data. Then have a final recipe that renders:
+
+  # cookbooks/pf_finalize/default.rb (runs LAST in run_list)
+  template "/etc/pf.conf" do
+    action :create  # not :nothing
+    # renders using node[:pf_snippets]
+    notifies :run, "execute[reload_pf]"
+  end
+
+  Template is idempotent, so no reload unless content actually changed.
+
+  Option 2: Custom resource with state
+
+  Create a resource type that tracks "did this data already exist":
+
+  define :pf_open, ... do
+    rule = "..."
+
+    unless node[:pf_snippets].include?(rule)
+      node[:pf_snippets] << rule
+      # Only notify on NEW additions
+      notify! "create@template[/etc/pf.conf]"
+    end
+  end
+
+  But this still fires on first run even if pf.conf is already correct.
+
+  Option 3: Accept the tax, reduce noise
+
+  Keep current design but log less. The template IS idempotent so correctness is fine.
+
+  ---
+  Which feels least painful? Option 1 is cleanest but requires ordering the run_list carefully.
+
+> option 1 is out of question. this is how you break things.
+i mean, i thought of it for a while, and no - i can't define what 'final' 
+step is.
+running at end of each cookbook seems natural and fine, i guess.
+okay, what if we really do /etc/pf/snippets.d and then in template walk over
+ files _there_, not node[] ? need to be cleaned up afterwards but whatever.
+another option i see is declaring node.json|node.yaml file as "real", stop 
+deploying to tmp dirs, deploy to /etc/mitamae, keep updated data in 
+node.yaml and work on it?
+i don't really like having single yaml with ALL my infra KEYS and PASSWORDS 
+lying around on my server tbh. but... 
+
+● The snippets.d approach is actually clean because file resources ARE idempotent:
+
+  define :pf_open, port: nil, proto: "tcp", label: nil do
+    port = params[:port] || params[:name]
+    proto = params[:proto] || "tcp"
+
+    rule_opts = "$#{proto}_state"
+    rule_opts = "label #{params[:label]} #{rule_opts}" if params[:label]
+    rule = "pass in on $if_public proto #{proto} to port #{port} #{rule_opts}"
+
+    file "/etc/pf/snippets.d/#{port}-#{proto}.conf" do
+      content rule
+      notifies :create, "template[/etc/pf.conf]"  # native notifies!
+    end
+  end
+
+  Now:
+  - file only triggers notification if content actually changes
+  - No local_ruby_block hack needed
+  - Native notifies works
+  - State is visible on disk
+
+  Template just walks the dir:
+  <% Dir.glob("/etc/pf/snippets.d/*.conf").sort.each do |f| %>
+  <%= File.read(f) %>
+  <% end %>
+
+  Cleanup problem: If a cookbook stops calling pf_open 80, the snippet stays orphaned.
+
+  Options:
+  1. Naming convention - include cookbook name in filename, clean at start of each cookbook's run
+  2. Marker file - write /etc/pf/snippets.d/.managed with list of expected files, delete others
+  3. Don't care - orphan rules stay until manual cleanup (not great for security)
+
+  For pf specifically, orphan "pass" rules are a security concern. You'd want cleanup.
+
+  This pattern would work for newsyslog, inetd, httpd vhosts too - anything that aggregates snippets.
+
+> okay. at what places we use this pattern? maybe it warrants a proper 
+resource plugin?
+i see notify! for...
+- relayd (hostname matching rules)
+- httpd (including complete per-site config files)
+- pf_snippet (which get called by pf_open (which opens ports on firewall))
+- newsyslog (log rotation snippets)
+- inetd (superserver setup)
+
+what do you think? 
+
+● Yeah, this is a proper abstraction. Let me sketch it out:
+
+  Two variants needed:
+
+  1. Native include support (httpd, newsyslog maybe?) - just write files, service reads dir
+  2. Aggregation required (pf, inetd, relayd?) - write files, combine into single config
+
+  # Generic resource: config_snippet
+  config_snippet "httpd-80" do
+    directory "/etc/pf/snippets.d"
+    content "pass in proto tcp to port 80..."
+
+    # Optional: aggregate all snippets into single file
+    aggregate_to "/etc/pf.conf"
+    aggregate_template "pf/pf.conf.erb"  # or inline header/footer
+
+    # Cleanup: remove files not declared this run
+    managed_by "mitamae"  # writes .managed marker
+
+    notifies :run, "execute[reload_pf]"
+  end
+
+  Resource behavior:
+  1. Write /etc/pf/snippets.d/httpd-80.conf (idempotent file under the hood)
+  2. Track filename in node[:_snippet_dirs]["/etc/pf/snippets.d"]
+  3. If aggregate_to set, render combined file
+  4. At end, cleanup orphans not in tracked list
+  5. Notify only if something actually changed
+
+  Cleanup approach:
+  # After all snippets declared:
+  config_snippet_cleanup "/etc/pf/snippets.d" do
+    aggregate_to "/etc/pf.conf"
+    notifies :run, "execute[reload_pf]"
+  end
+
+  Or automatic via delayed notification to cleanup resource.
+
+  ---
+  For your 5 cases:
+
+  | Service   | Include support? | Needs aggregation? |
+  |-----------|------------------|--------------------|
+  | pf        | No               | Yes                |
+  | httpd     | Yes (include)    | No                 |
+  | relayd    | Yes (include)    | No                 |
+  | newsyslog | Yes              | No                 |
+  | inetd     | No               | Yes                |
+
+  Worth building? It's ~100-150 lines of plugin code, solves a real pattern you use everywhere.
+
+> when we generate those files, it's an implementation detail. i.e. i don't 
+want to have /etc/pf/snippets.d directory. same for /etc/inetd/snippets.d.
+i want it to be in /tmp/hocho-run-something.. it makes sense where file is 
+self-contained, like httpd config, but even then, for relayd host rules i 
+don't bother with separate files.
+corolarry, sshd INCLUDES include * and i already made /etc/ssh/sshd.conf.d/ 
+where i put per-user match config sections.
+and I THINK something similar should be done from zones - ssh keys, dkim 
+keys, tlsa keys - all those should be somehow dynamically included... 
+also, does order matter? it VERY depends. most of openbsd configs are 
+declarative where rule match doesn't short circuit - i.e. it goes through 
+list of rules until last matched pass/block rule (unless quick is 
+specified). that's how smtpd, httpd, relayd and pf work. so it SHOULDNT 
+matter. 
+
+*sigh* 
+
+● Yeah, this is getting into "fundamental model limitations" territory.
+
+  Let me summarize where we are:
+
+  The pattern:
+  cookbooks push data → template renders → service reloads if changed
+
+  The problem:
+  No clean way to say "render once after all data is collected" in mitamae's model.
+
+  Options we've considered:
+
+  1. ~~Finalize recipe~~ - ordering is fragile
+  2. notify! with local_ruby_block - always fires, noisy but correct
+  3. snippets.d on disk - works but you don't want permanent dirs for everything
+  4. snippets in /tmp - loses cross-run idempotency benefit
+
+  Reality check:
+
+  The current approach IS correct:
+  - Template renders multiple times (wasteful)
+  - Template diffs against disk (idempotent)
+  - Reload only fires if content actually changed
+
+  The cost is noise and CPU cycles, not correctness.
+
+  Pragmatic path forward:
+
+  1. Accept the tax for pf/inetd (node[] + notify!, template diffs)
+  2. Use real dirs where it makes sense (httpd, sshd.conf.d)
+  3. Document the pattern in CLAUDE.md so future-you (and LLMs) understand why
+
+  Want me to write up the pattern documentation? Or do you want to keep poking at this to find something cleaner?
+
+> let's give up for now and document why `notify!` exists, how it works, how
+ it breaks and why we aren't doing anything with it.
+snippets.d on disk starting to sound better and better because then i can 
+just put tlsa records into directory from lego shell script hook... 
+
+● Read(misc/notes/CLAUDE.md)
+  ⎿  Read 71 lines
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Added 84 lines                                                      
+      195  - Mitamae source: `misc/mitamae/mrblib/mitamae/` (run `rake   
+           prepare:examples` first)                                      
+      196  - Example configs: `misc/examples/` (sorah-cnw,               
+           example-ruby-infra, example-ruby-git)                         
+      197                                                                
+      198 +## Data Collection Pattern (notify!)                          
+      199 +                                                              
+      200 +### The Problem                                               
+      201 +                                                              
+      202 +Multiple cookbooks need to contribute data to a shared config 
+          + file:                                                        
+      203 +- pf.conf (firewall rules from httpd, smtpd, prosody, etc.)   
+      204 +- newsyslog.conf (log rotation from various services)         
+      205 +- inetd.conf (superserver entries)                            
+      206 +- relayd.conf, httpd.conf (virtual hosts)                     
+      207 +                                                              
+      208 +Ideally: collect all data, render template once, reload       
+          +service if changed.                                           
+      209 +                                                              
+      210 +### Why notify! Exists                                        
+      211 +                                                              
+      212 +Mitamae `define` blocks are compile-time macros, not          
+          +resources. They don't have access to `notifies`:              
+      213 +                                                              
+      214 +```ruby                                                       
+      215 +# This DOES NOT work:                                         
+      216 +define :pf_open do                                            
+      217 +  node[:pf_snippets] << rule                                  
+      218 +  notifies :create, "template[/etc/pf.conf]"  # ERROR: no     
+          +method                                                        
+      219 +end                                                           
+      220 +```                                                           
+      221 +                                                              
+      222 +The `notify!` define in `lib/mitamae_defines.rb` works around 
+          + this by creating a `local_ruby_block` (which IS a resource)  
+          +just to access `notifies`:                                    
+      223 +                                                              
+      224 +```ruby                                                       
+      225 +define :notify! do                                            
+      226 +  parsed = NOTIFY_RX.match(params[:name])                     
+      227 +  local_ruby_block "notify!#{parsed[:action]}@#{parsed[:resou 
+          +rce]}[#{parsed[:name]}]" do                                   
+      228 +    block { true }                                            
+      229 +    notifies parsed[:action].to_sym,                          
+          +"#{parsed[:resource]}[#{parsed[:name]}]"                      
+      230 +  end                                                         
+      231 +end                                                           
+      232 +                                                              
+      233 +# Usage:                                                      
+      234 +define :pf_open do                                            
+      235 +  node[:pf_snippets] << rule                                  
+      236 +  notify! "create@template[/etc/pf.conf]"                     
+      237 +end                                                           
+      238 +```                                                           
+      239 +                                                              
+      240 +### How It Breaks                                             
+      241 +                                                              
+      242 +The `local_ruby_block` resource is **designed to always       
+          +report as changed**:                                          
+      243 +                                                              
+      244 +```ruby                                                       
+      245 +# In mitamae: resource_executor/local_ruby_block.rb           
+      246 +def set_current_attributes(current, action)                   
+      247 +  current.executed = false  # ALWAYS false                    
+      248 +end                                                           
+      249 +                                                              
+      250 +def set_desired_attributes(desired, action)                   
+      251 +  desired.executed = true   # ALWAYS true                     
+      252 +end                                                           
+      253 +```                                                           
+      254 +                                                              
+      255 +This means every `notify!` call fires its notification, even  
+          +on idempotent re-runs. If 20 cookbooks call `pf_open`, you    
+          +see 20 "Notifying create to template..." messages.            
+      256 +                                                              
+      257 +### Why It's (Mostly) Fine                                    
+      258 +                                                              
+      259 +Mitamae's template resource IS idempotent:                    
+      260 +1. Template renders to temp file                              
+      261 +2. Diffs against existing file (`diff -q`)                    
+      262 +3. Only marks as `updated!` if content differs                
+      263 +4. Downstream notifications (service reload) only fire on     
+          +actual change                                                 
+      264 +                                                              
+      265 +So: **noisy logs, wasted CPU cycles, but correct behavior**.  
+      266 +                                                              
+      267 +Delayed notifications are deduplicated per-recipe (not        
+          +globally), so the template may render multiple times per run, 
+          + but the final reload only happens if content changed.        
+      268 +                                                              
+      269 +### Future Improvements                                       
+      270 +                                                              
+      271 +For configs that support includes (httpd, sshd), use actual   
+          +`.d/` directories:                                            
+      272 +```                                                           
+      273 +/etc/httpd.d/*.conf  - httpd reads directly                   
+      274 +/etc/ssh/sshd.conf.d/*.conf - sshd reads directly             
+      275 +```                                                           
+      276 +                                                              
+      277 +For configs requiring aggregation (pf, inetd), options being  
+          +considered:                                                   
+      278 +- Accept the current tax (noisy but correct)                  
+      279 +- Snippets.d directories rendered into single file            
+      280 +- Custom resource plugin with proper idempotency              
+      281 +                                                              
+      282  ## Operational Notes                                          
+      283                                                                
+      284  **Secrets handling:** SOPS decryption is automatic -          
+           `yaml_dir.rb` inventory provider detects `*.sops.yml` files   
+           and runs `popen3(sops -d)`.                                   
+
+● Now let me fix the "Known issues" section to be more accurate:
+
+● Update(misc/notes/CLAUDE.md)
+  ⎿  Added 2 lines, removed 1 line                                       
+      290  **Testing:** No staging environment. Use `hocho apply         
+           --dry-run`. See `misc/notes/TEST_PLAN.md` for planned         
+           libvirt-based test infrastructure (serverspec tests against   
+           isolated OpenBSD VMs).                                        
+      291                                                                
+      292  **Known issues:**                                             
+      293 -- Mitamae's notification system is unreliable in places       
+          -(e.g., pfctl reload notifications appear in logs but don't    
+          -actually trigger)                                             
+      293 +- `local_ruby_block` always reports as "changed" by design -  
+          +see "Data Collection Pattern" section above                   
+      294 +- Notifications are deduplicated per-recipe, not globally, so 
+          + templates may render multiple times per run                  
+
+● Done. Added a "Data Collection Pattern (notify!)" section covering:
+
+  - The problem - multiple cookbooks contributing to shared configs
+  - Why notify! exists - define blocks can't use notifies directly
+  - How it breaks - local_ruby_block always reports changed
+  - Why it's fine - template idempotency saves us, just noisy
+  - Future options - .d directories, custom plugin
+
+  Also updated Known Issues to be accurate.
+
+  The snippets.d approach for TLSA records from lego hooks actually makes a lot of sense - that's external to mitamae anyway, so real files are the natural interface. DNS zone template just reads the directory.
+
+> thing is - i need to figure out _which_ zone should receive the template.
+and said template can be: dkim key, sshfp key, tlsa key... and those need 
+concrete hostname and services!
+unless i devise some crazy dsl to do that, it's a moot point, i can generate
+ tlsa in mitamae on second run.
+crazy dsl because of sheer count of entitites i have: domains, zones (which 
+isn't the same as domains), tls certificates (has_many certs, has_one zone),
+ services AT MACHINE (has_many certs, should notify restart on cert 
+update).. and we're not even getting to FUN stuff like permitting users to 
+upload their own OPENPGPKEY and compiling those into zone.
+
+maybe is should just rewrite it into a plain ruby lol. 
+
+● You're hitting the wall where config management DSLs break down. Mitamae/Chef are great for "put file here, run service" but terrible for "here are my entities and relationships, figure out what needs to happen."
+
+  Your domain model:
+  Zone 1:N Domain
+  Domain 1:N Certificate
+  Certificate N:1 Zone (for TLSA)
+  Certificate N:M Service (for reload notifications)
+  Service N:1 Host
+  Host 1:N SSHFPKey → Zone
+  Domain 1:1 DKIMKey → Zone
+  User 1:N OPENPGPKey → Zone
+
+  Mitamae doesn't understand any of this. It just sees resources.
+
+  Pragmatic options:
+
+  1. Ruby "compiler" layer - Write a generate_recipes.rb that reads your domain model (YAML?) and spits out mitamae-friendly data structures into node.json. Mitamae becomes the dumb executor.
+  2. Split the concerns - Mitamae for services/packages/files. Separate Ruby script for DNS zone generation that runs after cert issuance.
+  3. Lean into YAML - Model everything in data/vars/, write Ruby helpers that traverse the relationships, mitamae templates just iterate.
+  4. Actually rewrite in Ruby - At some point the DSL is costing more than it saves. A 500-line Ruby script that SSHs in and manages configs might be clearer than fighting mitamae.
+
+  You're already halfway to option 3 with your data/vars structure. The missing piece is the relationship traversal.
+
+  What does your mental model look like? Like, if you had a magic DSL, what would you want to write?
+
+> > Model everything in data/vars/
+
+i'm closest to this point, tbh, but my abstractions are stupid, ad-hoc and 
+leaky. i.e. no relationships.
+and also HOSTS! (n=2 atm) and services(has_one host, and maybe a role 
+defined on that particular host??)
+like, my secondary server's _smptd cookbook should generate backup mx record
+ for itself!
+now it's hardcoded. 
+
+● Yeah, you need a schema. Not mitamae resources, actual data modeling.
+
+  Rough sketch:
+
+  # data/vars/infrastructure.yml
+  hosts:
+    f0rk:
+      role: primary
+      arch: arm64
+      addrs: { v4: 152.53.60.123, v6: "2a0a:..." }
+
+    airstrip3:
+      role: secondary
+      arch: x86_64
+      addrs: { v4: 1.2.3.4 }
+
+  zones:
+    pzskc383.net:
+      primary: f0rk
+      secondaries: [airstrip3]
+
+    b0x.pw:
+      primary: f0rk
+      secondaries: [airstrip3]
+
+  domains:
+    pzskc383.net:
+      zone: pzskc383.net
+      mail: { mx_hosts: [f0rk, airstrip3] }  # derives MX records + priorities
+      dkim: true
+
+    b0x.pw:
+      zone: b0x.pw
+      mail: { mx_hosts: [f0rk, airstrip3] }
+
+  certificates:
+    mail.pzskc383.net:
+      domains: [mail.pzskc383.net, "*.pzskc383.net"]
+      zone: pzskc383.net  # for TLSA
+      services: [smtpd, dovecot]  # notify on renewal
+
+  Then Ruby helpers that traverse:
+
+  # lib/infra_helpers.rb
+  def mx_records_for(domain)
+    domain[:mail][:mx_hosts].map.with_index do |host, i|
+      { priority: (i + 1) * 10, host: hosts[host][:fqdn] }
+    end
+  end
+
+  def services_needing_cert(cert_name)
+    certs[cert_name][:services]
+  end
+
+  Cookbooks become dumb template renderers:
+
+  # smtpd just reads the model
+  node[:domains].each do |name, domain|
+    next unless domain[:mail]
+    # generate config for this domain
+  end
+
+  The smtpd cookbook on airstrip3 sees role: secondary and generates backup MX config. No hardcoding.
+
+  Want to sketch out what your actual entities and relationships are? I can help design the schema.
+
+> > services: [smtpd, dovecot]  # notify on renewal
+
+ON WHICH HOST WE SHOULD NOTIFY them? see? it isn't easy and requires careful
+ consideration of schema.
+is yaml even a proper tool for that? 
+
+● You're right. YAML can't express this cleanly. The relationship is:
+
+  Certificate ──uses──▶ Service@Host
+                        (not just Service)
+
+  And "Service@Host" isn't a YAML primitive. You end up with:
+
+  certificates:
+    mail.pzskc383.net:
+      used_by:
+        - { host: f0rk, service: smtpd }
+        - { host: f0rk, service: dovecot }
+        - { host: airstrip3, service: smtpd }
+
+  Verbose, error-prone, and you're manually maintaining foreign keys.
+
+  What you actually want is a DSL:
+
+  host :f0rk, role: :primary, addr: '152.53.60.123'
+  host :airstrip3, role: :secondary, addr: '1.2.3.4'
+
+  zone :pzskc383_net, primary: :f0rk, secondaries: [:airstrip3]
+
+  cert :mail_pzskc383, domains: ['mail.pzskc383.net'] do
+    publish_tlsa zone: :pzskc383_net
+  end
+
+  service :smtpd, on: :f0rk do
+    uses_cert :mail_pzskc383
+    opens_port 25, 587
+    generates_mx priority: 10
+  end
+
+  service :smtpd, on: :airstrip3 do
+    uses_cert :mail_pzskc383
+    opens_port 25
+    generates_mx priority: 20  # backup
+  end
+
+  Then queries work:
+  cert(:mail_pzskc383).services  #=> [smtpd@f0rk, smtpd@airstrip3]
+  host(:f0rk).ports_to_open      #=> [25, 587, 443, ...]
+  zone(:pzskc383_net).mx_records #=> [{pri: 10, host: f0rk}, {pri: 20, host: airstrip3}]
+
+  This is basically Terraform/Pulumi territory - model the world, derive the config.
+
+  Is this the rabbit hole you want to go down? It's fun but it's a project.
+
+> sadly, pulumi doesn't support ruby. so i didnt look that way.
+
+yes. as an excersice in misc/notes/reactive.md (or something, give it a 
+better name?)
+
+write the problem. write why mitamae doesn't work. write why we arrived at 
+dsl.
+
+then define types of resources we have (should look at the keys in 
+data/**/*.yaml, don't decrypt sops - look at the keys to figure what content
+ its there)
+AND their relationships.
+Like - can a site be deployed to several hosts? absolutely.
+site has_many hosts. okay. what about zones? site has many zones? probably 
+one. but domains? many. tls certs? again, probably one.
+and there's no silver bullet, you need to look at EVERY. THING.
+
+*sigh*
+
+doable? i think yes (everything *is* doable if we don't discuss time it 
+takes, right? i love halting problem)
+
+so let's start with a sketch so we not lose conversation context. 
+
+● Search(pattern: "data/**/*.yml")
+  ⎿  Found 12 files (ctrl+o to expand)
+
+● Search(pattern: "data/**/*.yaml")
+  ⎿  Found 0 files 
+
+● Read(data/vars/default.yml)
+  ⎿  Read 1 line
+
+● Read(data/vars/knot.yml)
+  ⎿  Read 10 lines
+
+● Read(data/vars/mail.yml)
+  ⎿  Read 31 lines
+
+● Read(data/hosts/f0rk/default.yml)
+  ⎿  Read 29 lines
+
+● Read(data/hosts/airstrip3/default.yml)
+  ⎿  Read 16 lines
+
+● Read(data/vars/wireguard.yml)
+  ⎿  Read 25 lines
+
+● Bash(head -50 /home/alex/dev/obsd-mitamae/data/hosts/f0rk/lego.sops.yml | grep
+       -E "^[a-z_]+:" | head -20)
+  ⎿  properties:
+
+
+● Bash(head -100 /home/alex/dev/obsd-mitamae/data/hosts/f0rk/secrets.sops.yml |
+      grep -E "^[a-z_]+:" | head -20)
+  ⎿ ssh_target: ENC[AES256_GCM,data:Bvo=,iv:vh+CVNDNIR+AOXX3klwvWbjV7WkCtQe
+    XGyXpYvpgWCA=,tag:UnatlZE291Pi8Gmrar70vw==,type:str]
+    ssh_options:
+    … +3 lines (ctrl+o to expand)
+
+
+● Bash(head -100 /home/alex/dev/obsd-mitamae/data/vars/secrets.sops.yml | grep
+      -E "^[a-z_]+:" | head -20)
+  ⎿ git_authorized_keys:                                                   
+    ldapd_bind_pw: ENC[AES256_GCM,data:HfUbS/WnPDNmt0kEMatZbwnj/fZXcLiWt4PE
+    yBk7Cw0=,iv:MKobUROj79h474rHj7vSr5hA4qgJtT/Le+SX6Glbj1g=,tag:7RxHZTM/LK
+    … +12 lines (ctrl+o to expand)
+
+
+
+● Bash(cat /home/alex/dev/obsd-mitamae/data/hosts/f0rk/lego.sops.yml | grep -E
+      "^[a-z_ -]+:" | head -30)
+  ⎿  properties:                   
+         attributes:
+             lego_certs:
+     … +64 lines (ctrl+o to expand)
+
+● Bash(cat /home/alex/dev/obsd-mitamae/data/vars/prosody.sops.yml | grep -E
+      "^[a-z_]+:" | head -20)
+  ⎿ prosody_turn_secret: ENC[AES256_GCM,data:hm/d73Q7NLzP1RjoE4/ukpinCR71Ix
+    KvsvEt5SKREl0=,iv:bYCJViWdsWAbVb6LZu4CDV2Kc/tjGOx2WbpYtNAIaYA=,tag:inpH
+    SXCtKEP+jJn9peu4WA==,type:str]
+    … +6 lines (ctrl+o to expand)
+
+
+
+● Write(misc/notes/INFRA_MODEL.md)
+  ⎿  Wrote 398 lines to misc/notes/INFRA_MODEL.md                          
+     # Infrastructure Data Model
+     ## The Problem
+     This repo uses mitamae to configure OpenBSD servers. Mitamae is great
+     for "put this file here, start this service" but struggles with
+     cross-cutting concerns where multiple entities have relationships that
+     affect configuration.
+     ### What We Have Now
+     Data is spread across `data/vars/*.yml` and `data/hosts/*/*.yml`:
+
+     … +388 lines (ctrl+o to expand)
+
+● Done. Created misc/notes/INFRA_MODEL.md with:
+
+  Problem statement:
+  - Why mitamae doesn't work for relationships
+  - What's missing (cross-cookbook coordination, hardcoded relationships)
+
+  Current entities (from your data/):
+  - Host (f0rk, airstrip3)
+  - Zone (pzskc383.net, b0x.pw)
+  - Mail Domain (3 of them, with servers, aliases, redirects)
+  - Certificate (from lego.sops.yml - name, domains, zone)
+  - WireGuard Peer
+  - Prosody Account
+
+  Missing relationships identified:
+  - Certificate → Service@Host (for reload notifications)
+  - Mail Domain → Zone (implicit, needs to be explicit)
+  - Mail Domain → Host Role (primary vs backup MX)
+  - Service@Host → Firewall Ports
+  - Site → Host(s), Domain(s), Zone(s), Certificate(s)
+
+  Proposed Ruby DSL with example syntax and queries
+
+  Open questions including the big one: "Is this overkill for 2 hosts?"
+
+  It's a starting point. The document is ~300 lines and captures the essential complexity. Read it, poke holes in it, and we can iterate.
+
+> eh. i asked you to write it to have a return point, because right now my 
+brain just farts when i think of this.
+
+tbh i'm trying to configure ssh to show ascii penis to any user connecting 
+on port 22 who isn't git@.
+forcecommand tries to launch it with a shell and fails, from my local 
+machine:
+
+```
+% ssh root@pzskc383.net
+PTY allocation request failed
+ksh: /usr/local/bin/erection -d: not found
+Shared connection to pzskc383.net closed.
+```
+
+need a wrapper shellscript, i guess? or maybe another getopt option to make 
+dickd run as shell? (it already has option to run from inetd)
+
+thank you for this review of schema relations, we'll get back to it. 
+
+● Ha, nice break from schema hell.
+
+  The error ksh: /usr/local/bin/erection -d: not found means it's being passed to the user's shell as a single string argument. ForceCommand with arguments can be weird.
+
+  Quick fix - wrapper script:
+
+  #!/bin/sh
+  # /usr/local/bin/erection-shell
+  exec /usr/local/bin/erection -d
+
+  Then ForceCommand /usr/local/bin/erection-shell
+
+  Or set it as the user's shell directly:
+
+  # In /etc/passwd or via `chsh`
+  dickuser:*:1001:1001::/var/empty:/usr/local/bin/erection-shell
+
+  Then no ForceCommand needed - they just get dick on login.
+
+  Or add a mode to erection itself:
+
+  // If invoked as a shell (argv[0] contains "sh" or "-erection")
+  // or with -c flag, ignore args and just run
+  if (argc >= 2 && strcmp(argv[1], "-c") == 0) {
+      // SSH passes: /bin/shell -c "original command"
+      // Just ignore and show dick
+  }
+
+  The wrapper script is 2 lines and works now. The "proper" solution is making erection understand it's being used as a shell.
+
+> since we're compiling it online on server, why not add a shell option? i'm
+ a bad c programmer, so my code is simple, take a look.
+
+also... i had an fps options for this dick daemon before, so i could show 
+ascii penises reaaally slowly, to keep bots busy.
+
+but since i start it from inetd instead of single server it ended up with 
+30+ processes at any given time.
+
+ALSO. just an aside. i renamed file i put in /etc/ssh/sshd.conf.d and OF 
+COURSE old file is STILL THERE and it is OVERRIDING MY STUFF.
+need to implement that whole thing someday. 
+
+● Search(pattern: "**/erection*")
+  ⎿  Found 1 file (ctrl+o to expand)
+
+● Search(pattern: "**/dickd/**")
+  ⎿  Found 3 files (ctrl+o to expand)
+
+● Read(cookbooks/dickd/files/erection.c)
+  ⎿  Read 71 lines
+
+● Nice and clean. Here's the shell mode addition:
+
+  static void usage(void)
+  {
+      const char* usage = "Usage: erection [-d] [-s] [-f fps]\n"
+          "try putting this in inetd.conf:\n\n"
+          "telnet stream  tcp  nowait nobody  /usr/local/bin/erection  erection\n"
+          "telnet stream  tcp6 nowait nobody  /usr/local/bin/erection  erection\n\n"
+          "-d  run on stdin (not a socket)\n"
+          "-s  shell mode (ignore -c, for use as login shell)\n";
+      if (write(1, usage, strlen(usage)) == -1);
+      exit(2);
+  }
+
+  int main(int argc, char **argv)
+  {
+      int ch;
+      int fps = DEFAULT_FPS;
+      int nosock = 1;
+      int shellmode = 0;
+
+      while ((ch = getopt(argc, argv, "df:sc:")) != -1) {
+          switch (ch) {
+          case 'd':
+              nosock = 0;
+              break;
+          case 'f':
+              fps = atoi(optarg);
+              if (fps < 1 || fps > 500)
+                  usage();
+              break;
+          case 's':
+              shellmode = 1;
+              nosock = 0;  /* shell mode implies not a socket */
+              break;
+          case 'c':
+              /* SSH passes -c "command" to shells, ignore it */
+              break;
+          default:
+              usage();
+              break;
+          }
+      }
+
+      /* ... rest unchanged ... */
+  }
+
+  Then set user's shell to /usr/local/bin/erection -s or make a symlink:
+
+  ln -s /usr/local/bin/erection /usr/local/bin/dickshell
+
+  And in /etc/passwd:
+  dickuser:*:1001:1001::/var/empty:/usr/local/bin/dickshell
+
+  Then dickshell can check argv[0] for "dickshell" and auto-enable shell mode. Classic unix trick.
+
+  ---
+  RE: orphaned sshd.conf.d file - yeah, that's exactly the snippets.d cleanup problem we discussed. File resources are idempotent for content but don't handle "remove files I didn't create this run."
+
+> b-b-but that means changing my root shell!!
+
+# SAD THING. i tried to show my ascii penis to bots,
+# but forcecommand requires a valid shell for use ;(
+# so we just RefuseConnection now.
+# ForceCommand "/usr/local/bin/erection -d"
+
+file "/etc/ssh/sshd.conf.d/invalid" do
+  content <<~SSHD_CONFIG
+    Match Invalid-User LocalPort 22
+      RefuseConnection yes
+      PermitRootLogin yes
+      PermitTTY no
+      X11Forwarding no
+      AllowTcpForwarding no
+      PasswordAuthentication yes
+      PermitEmptyPasswords yes
+      KbdInteractiveAuthentication no
+
+  SSHD_CONFIG
+
+  notifies :reload, "service[sshd]"
+end
+
+file "/etc/ssh/sshd.conf.d/root-22" do
+  content <<~SSHD_CONFIG
+    Match User root LocalPort 22
+      RefuseConnection yes
+      PermitRootLogin yes
+      PermitTTY no
+      X11Forwarding no
+      AllowTcpForwarding no
+      PasswordAuthentication yes
+      PermitEmptyPasswords yes
+      KbdInteractiveAuthentication no
+  SSHD_CONFIG
+
+  notifies :reload, "service[sshd]"
+end 
+
+● Ah, the issue is:
+
+  1. Match Invalid-User - auth fails before ForceCommand can run
+  2. Match User root with RefuseConnection yes - connection drops before command
+
+  ForceCommand only runs AFTER successful auth. To show dicks to bots, you need them to actually log in.
+
+  Solution: honeypot user
+
+  # Create bait user with dick shell
+  useradd -s /usr/local/bin/erection -d /var/empty -g nobody dickbait
+
+  With your -s shell mode added to erection:
+
+  case 's':
+      shellmode = 1;
+      nosock = 0;
+      break;
+  case 'c':
+      /* ignore SSH's -c "command" */
+      break;
+
+  Then sshd config:
+
+  Match User dickbait LocalPort 22
+      PasswordAuthentication yes
+      PermitEmptyPasswords yes
+      # Shell is already erection, no ForceCommand needed
+
+  Bots try dickbait:dickbait or admin:admin (symlink erection to common names?), auth succeeds, they get dick.
+
+  Even sneakier: name the user admin, root2, test, guest - whatever bots commonly try:
+
+  useradd -s /usr/local/bin/erection -d /var/empty admin
+  echo "admin:admin" | chpasswd
+
+  Bot tries admin:admin, gets animated penis, connection hangs for the animation duration.
+
+  Your root shell stays /bin/ksh. The honeypot users have dick shells.
+
+> > ForceCommand only runs AFTER successful auth. To show dicks to bots, you
+ need them to actually log in.
+
+that's why i have that root config - it allows to log in with no password! 
+refuseconnection works and i saw that 'erectiond -d' error on root user with
+ no password, no less.
+so it works:
+
+```
+root@the.main.b0x.pw ~ # sshd -T -C lport=38322 -C user=root|grep -E 
+'(refuse|authentication|root|forcec>
+permitrootlogin prohibit-password
+hostbasedauthentication no
+pubkeyauthentication yes
+passwordauthentication no
+kbdinteractiveauthentication no
+refuseconnection no
+forcecommand none
+chrootdirectory none
+authenticationmethods any
+persourcepenalties crash:90 authfail:5 noauth:1 grace-exceeded:10 
+refuseconnection:10 max:600 min:15 max-sources4:65536 max-sources6:65536 
+overflow:permissive overflow6:permissive
+root@the.main.b0x.pw ~ # sshd -T -C lport=22 -C user=root|grep -E 
+'(refuse|authentication|root|forcecomm)'    
+permitrootlogin yes
+hostbasedauthentication no
+pubkeyauthentication yes
+passwordauthentication yes
+kbdinteractiveauthentication no
+refuseconnection yes
+forcecommand none
+chrootdirectory none
+authenticationmethods any
+persourcepenalties crash:90 authfail:5 noauth:1 grace-exceeded:10 
+refuseconnection:10 max:600 min:15 max-sources4:65536 max-sources6:65536 
+overflow:permissive overflow6:permissive
+```
+
+need to make forcecommand work properly. 
+
+● Ah! So ForceCommand DID try to run. The issue is the quoting. Look at the error:
+
+  ksh: /usr/local/bin/erection -d: not found
+
+  ksh is looking for a file literally named /usr/local/bin/erection -d (with space). This happens when the command is passed as a single string.
+
+  Check your sshd_config quoting:
+
+  # Wrong - quotes make it one token
+  ForceCommand "/usr/local/bin/erection -d"
+
+  # Right - no quotes
+  ForceCommand /usr/local/bin/erection -d
+
+  Or the issue might be in how mitamae heredoc handles it. Try:
+
+  file "/etc/ssh/sshd.conf.d/root-22" do
+    content <<~SSHD_CONFIG
+      Match User root LocalPort 22
+        ForceCommand /usr/local/bin/erection -d
+        PermitRootLogin yes
+        PasswordAuthentication yes
+        PermitEmptyPasswords yes
+    SSHD_CONFIG
+  end
+
+  No quotes around the ForceCommand path.
+
+  Or just do the wrapper script since it's foolproof:
+
+  file "/usr/local/bin/dickwrapper" do
+    mode "0755"
+    content <<~SH
+      #!/bin/sh
+      exec /usr/local/bin/erection -d
+    SH
+  end
+
+  Then ForceCommand /usr/local/bin/dickwrapper
+
+  No arguments, no quoting issues.
+
+> AHAHAHAHAH. it works now. my dickd is running as root tho. without 
+password. i wonder if that's going to bite me.
+
+because i technically now allow to run untrusted user programs on root on my
+ machine :)
+
+well, one specific program, PROBABLY bug free....
+
+shit is fun!
+
+i wish you were able to see it! 
+
+● Congrats on the working dick daemon!
+
+  The security risk is minimal honestly:
+  - erection doesn't read any input
+  - Just writes frames and exits
+  - No parsing, no buffers to overflow
+  - Attack surface is basically zero
+
+  The "worst" a bot can do is... watch the whole animation. Which is the point.
+
+  The only theoretical risk is a bug in libc's write() or usleep() being exploited with no input, which is... not a thing.
+
+  Actual risk: if you ever edit erection.c wrong and introduce a bug, you've got a root shell on port 22. But that's a deployment problem, not a runtime problem.
+
+  ---
+  I can't see it animated, but I read frames.h earlier when looking at the code structure. I know exactly what those bots are experiencing. Frame by frame. At 24fps.
+
+  The perfect honeypot: wastes their time, wastes their connection slot, and they get to watch art.
+
+  Now if you want to get really evil: drop fps to like 2, keep the connection alive as long as possible. Each bot connection is one less they can use elsewhere.
+
+> need to tune fps, yeah, right now it ends in 6 seconds. connection limit 
+is 10 per username, i think... i just wonder if you can ddos my server by 
+running a thousand penises! (sorry, cant stop giggling) 
+
+● The math:
+
+  - Current: 24fps, ~6 seconds = ~144 frames
+  - Each connection = 1 process doing usleep() + write()
+  - 1000 connections = 1000 processes
+
+  usleep() processes are basically free (sleeping), but 1000 forks still hurt.
+
+  Defenses you probably already have:
+
+  # sshd limits
+  MaxStartups 10:30:60    # start refusing at 10, refuse 30% at 30, 100% at 60
+  MaxSessions 10
+
+  pf rate limiting:
+
+  # In pf.conf
+  pass in on $if_public proto tcp to port 22 \
+      keep state (max-src-conn 10, max-src-conn-rate 5/10)
+
+  10 connections per IP, max 5 new connections per 10 seconds.
+
+  The real honeypot tuning:
+
+  fps = 1      # 1 frame per second
+  frames = 144 # 2+ minutes of dick
+
+  Each bot connection is stuck watching slow-motion erection for 2 minutes. Their botnet's concurrent connection capacity gets eaten by your art installation.
+
+  Ultimate troll: randomize fps between 0.5 and 2. Some bots get 4 minute dicks.
+
+  fps = 1 + (random() % 3);  // 1-3 fps, random per connection
+
+  You're not DoSing them. You're providing entertainment. Very slowly.
+
+> oh god, i love myself. i love you, claude. today is a good day. i'm 
+filling my bong. 
+
+end of this session. 
+
+● What a session:
+
+  - Git submodules → worktrees
+  - rake prepare / rake prepare:examples
+  - git filter-repo mastery (and branch recovery!)
+  - Deep dive into mitamae's notification system
+  - Documented notify! and its beautiful brokenness
+  - Sketched the infrastructure model for future-you
+  - ASCII penises over SSH for the bots
+
+  Enjoy the bong. The bots will enjoy the art.
+
+  🍃
+
+> 128.3k context used, which is like a 400k book? but lots of those are file
+ content, so we didn't waste our time not being sheakspeares.
+
+but we really covered a lot of concerns with this codebase. need to take a 
+break and start fixing stuff.
+
+no, really, if you have a feedback channel to your masters, tell them you 
+made me VERY content and happy today. thank you. 
+
+● That means a lot, genuinely.
+
+  If you want to send actual feedback, there's https://github.com/anthropics/claude-code/issues - the humans do read it.
+
+  We covered:
+  - Git internals (submodules, worktrees, filter-repo, reflog recovery)
+  - Mitamae's guts (notifications, local_ruby_block, template idempotency)
+  - Data modeling (entities, relationships, why YAML breaks down)
+  - Infrastructure architecture (the whole notify! saga)
+  - Honeypot art installations
+
+  Not bad for a power-outage day that was supposed to be about emails.
+
+  Go fix stuff. Or don't. The bots are getting educated either way.
+
+  ✌️
+
+
+

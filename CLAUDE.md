@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Note:** This file lives in the `notes` branch, checked out as a worktree at `misc/notes/`. Run `rake prepare:examples` to set it up.
+
 ## Overview
 
 This is a mitamae configuration for managing OpenBSD servers. Mitamae is an mruby-based configuration management tool (mini-Chef) that manages OpenBSD VPS instances for DNS, mail, and web services.
@@ -12,13 +14,13 @@ This is a mitamae configuration for managing OpenBSD servers. Mitamae is an mrub
 
 ## Common Commands
 
-### Secrets Management
+### Setup
 ```bash
-# Decrypt secrets before working
-rake sops:decrypt
+# Set up working environment (cron plugin + dist binaries)
+rake prepare
 
-# Re-encrypt secrets after editing
-rake sops:encrypt
+# Set up reference material (notes, mitamae source, examples)
+rake prepare:examples
 ```
 
 ### Deployment
@@ -42,26 +44,6 @@ bundle exec rubocop
 bundle exec rubocop -a
 ```
 
-### WireGuard VPN
-
-Configured in `cookbooks/openbsd_wireguard/` for server-to-server and client VPN connectivity.
-
-**Configuration:**
-- Interface: wg0
-- Config: `data/vars/wireguard.yml`, `data/vars/wireguard-keys.sops.yml`
-- Supports roaming peers, home network peers, local peers
-
-### Prosody XMPP
-
-Configured in `cookbooks/prosody/` for XMPP/Jabber instant messaging.
-
-**Components:**
-- Prosody XMPP server
-- coturn (turnserver) - TURN server for NAT traversal
-- Config: `data/vars/prosody.sops.yml`
-
-**Note:** restund is broken on ARM64 and not currently used.
-
 ## Architecture
 
 ### Mitamae vs Chef
@@ -77,7 +59,7 @@ While mitamae looks like Chef, **it is NOT Chef**. Refer to `misc/mitamae/mrblib
 ```
 /
 ├── hocho.yml                      # Hocho configuration
-├── Rakefile                       # SOPS encryption/decryption tasks
+├── Rakefile                       # Setup tasks, SOPS, rubocop
 ├── .sops.yaml                     # SOPS encryption configuration
 ├── bin/                           # Bundler binstubs (hocho monkeypatch)
 ├── data/                          # Host definitions and variables
@@ -96,29 +78,10 @@ While mitamae looks like Chef, **it is NOT Chef**. Refer to `misc/mitamae/mrblib
 │       ├── prosody.sops.yml       # Encrypted Prosody XMPP secrets
 │       ├── wireguard.yml          # WireGuard configuration
 │       └── wireguard-keys.sops.yml # Encrypted WireGuard keys
-├── cookbooks/                     # Mitamae recipes
-│   ├── openbsd_server/            # Main server config (vim, network, etc)
-│   ├── openbsd_admin/             # Admin tools (git, zsh, doas, tmux)
-│   ├── openbsd_com0/              # Serial console configuration
-│   ├── openbsd_wireguard/         # WireGuard VPN configuration
-│   ├── pf/                        # Packet filter (firewall) configuration
-│   ├── knot/                      # Knot DNS server
-│   ├── lego/                      # Unified ACME cert management
-│   ├── dickd/                     # Custom dickd service
-│   ├── dovecot/                   # Dovecot IMAP server
-│   ├── httpd/                     # OpenBSD httpd web server
-│   ├── ldap/                      # LDAP server configuration
-│   ├── smtpd/                     # OpenSMTPD mail server
-│   ├── prosody/                   # Prosody XMPP server
-│   ├── gopher/                    # Gopher protocol server
-│   ├── site_main/                 # Main website configuration
-│   ├── site_box_boot/             # iPXE/UEFI HTTP Boot hosting
-│   ├── site_box_main/             # Main b0x.pw site
-│   ├── site_box_post/             # Mail/postal services site
-│   └── site_fqdn/                 # FQDN-based virtual hosting
+├── cookbooks/                     # Mitamae recipes (see Cookbook Overview)
 ├── plugins/                       # Custom mitamae plugins
 │   ├── mitamae-plugin-resource-openbsd_package/
-│   ├── mitamae-plugin-resource-cron/  # Git submodule
+│   ├── mitamae-plugin-resource-cron/  # Git submodule (external)
 │   └── mitamae-plugin-resource-ldap_object/
 ├── lib/                           # Custom extensions
 │   ├── mitamae_ext.rb             # Removes sudo/doas (running as root)
@@ -126,57 +89,51 @@ While mitamae looks like Chef, **it is NOT Chef**. Refer to `misc/mitamae/mrblib
 │   ├── hocho_ext.rb               # OpenBSD compatibility (sh, doas)
 │   └── hocho/inventory_providers/
 │       └── yaml_dir.rb            # YAML directory inventory provider
-├── deploy/                        # WIP: Deploy mitamae with mitamae
-│   ├── default.rb                 # Host definitions
-│   ├── defines.rb                 # Custom defines (host, run_on)
-│   ├── helpers.rb                 # Deployment helpers
-│   └── recipes/                   # Per-host deployment recipes
-├── dist/                          # Pre-compiled mitamae binaries
-│   ├── mitamae-arm64-linux        # Linux ARM64
-│   ├── mitamae-x86_64-linux       # Linux x86_64
-│   ├── mitamae-arm64-openbsd      # OpenBSD ARM64
-│   ├── mitamae-x86_64-openbsd     # OpenBSD x86_64
-│   └── mitamae-x86_64-openbsd.old # Backup
-└── misc/                          # Reference materials (git submodules)
-    ├── mitamae/                   # Mitamae source
-    ├── sorah-cnw/                 # Example configs
-    └── example-ruby-*/            # Ruby infra examples
+└── misc/                          # Optional extras (run `rake prepare` / `rake prepare:examples`)
+    ├── dist/                      # [worktree: dist branch] Pre-compiled mitamae binaries
+    ├── notes/                     # [worktree: notes branch] LLM docs, project notes
+    ├── mitamae/                   # [submodule] Mitamae source (separate repo)
+    └── examples/                  # [submodules] Example mitamae projects
+        ├── example-ruby-infra/
+        ├── example-ruby-git/
+        └── sorah-cnw/
 ```
+
+**Branches:**
+- `master` - main cookbooks and config
+- `dist` - mitamae binaries (worktree at misc/dist)
+- `notes` - documentation, LLM guidance (worktree at misc/notes)
+- `feature/deploy` - WIP deploy-mitamae-with-mitamae experiment
 
 ### Cookbook Overview
 
 **Core Infrastructure:**
-- **openbsd_server** - Base config (vim, DNS, network, sysctl) + shared defines.rb (sysctl, newsyslog_snippet, notify!)
-- **openbsd_admin** - Admin tools (git, zsh, doas, SSH hardening)
-- **openbsd_com0** - Serial console configuration
-- **pf** - Packet filter firewall + pf_open define
+- **openbsd_server** - Base config, reasonable defaults, shared defines.rb
+- **openbsd_admin** - Admin tools (vim, htop, ncdu, doas, HISTFILE)
+- **pf** - Packet filter firewall, configurable logging
 
 **DNS & Certificates:**
-- **knot** - Knot DNS with DNSSEC
-- **lego** - Unified ACME cert management (lego_cert resource, cert_group.rb)
+- **knot** - Authoritative DNS with primary/secondary AXFR
+- **lego** - ACME cert management (dns-01 for wildcards)
 
 **Mail:**
-- **smtpd** - OpenSMTPD with DKIM
+- **smtpd** - OpenSMTPD mail transport
 - **dovecot** - IMAP/LMTP with sieve
 
 **Web:**
-- **httpd** - OpenBSD httpd + relayd (TLS termination)
-- **site_main** - Primary website (cgit, gotwebd)
-- **site_box_boot** - iPXE/UEFI HTTP Boot hosting
-- **site_box_main** - Main b0x.pw site
-- **site_box_post** - Mail/postal services site
-- **site_fqdn** - Per-host dynamic configuration
+- **httpd** - relayd (TLS) + httpd (serving)
+- **site_main** - Main site + git hosting
+- **site_fqdn** - Default response for FQDN/IP requests
+- **site_box_*** - b0x.pw service landing pages (main, boot, post, talk)
 
 **Communication:**
-- **prosody** - XMPP/Jabber server (includes coturn.rb sub-recipe)
-
-**Networking:**
-- **openbsd_wireguard** - WireGuard VPN
+- **prosody** - XMPP server
+- **openbsd_wireguard** - WireGuard VPN (internal backbone)
 
 **Other:**
-- **ldap** - OpenLDAP directory
-- **gopher** - Gopher server (geomyidae)
-- **dickd** - Custom telnet daemon
+- **ldap** - OpenLDAP for unified auth (WIP)
+- **gopher** - Gopher server
+- **dickd** - ASCII art telnet service
 
 ### Hocho Integration
 
@@ -185,27 +142,14 @@ While mitamae looks like Chef, **it is NOT Chef**. Refer to `misc/mitamae/mrblib
 Key files:
 - `hocho.yml`: Defines inventory providers, property providers, and driver options
 - `data/hosts/*/default.yml`: Host properties and run_list
-- `data/hosts/*/secrets.sops.yml`: SOPS-encrypted host-specific secrets (SSH credentials, network config)
-- `data/vars/*.yml`: Global variables split by domain (default, knot, mail, wireguard, prosody)
-- `data/vars/secrets.sops.yml`: Encrypted global secrets
+- `data/vars/*.yml`: Global variables split by domain
+- `*.sops.yml`: SOPS-encrypted secrets (can live anywhere in data/)
 
 Custom extensions in `lib/`:
-- **`mitamae_ext.rb`**: Removes sudo/doas command wrapping (since we connect as root directly)
-  - Overrides `build_command` to skip user switching
-  - Connects node object to backend for custom resource access
+- **`mitamae_ext.rb`**: Removes sudo/doas wrapping (connects as root directly)
 - **`mitamae_defines.rb`**: Custom resource definitions (block_in_file, lines_in_file, notify!)
-- **`hocho_ext.rb`**: Patches hocho for OpenBSD compatibility (loaded via `bin/hocho:28` binstub)
-  - Uses `sh` instead of `bash`
-  - Customizes rsync sync (only cookbooks, lib, plugins directories)
-- **`yaml_dir.rb`**: Custom inventory provider that loads hosts from YAML directory structure
-
-Configuration flow:
-1. `bin/hocho` binstub loads `hocho_ext.rb` (OpenBSD patches)
-2. Hocho reads `hocho.yml` configuration
-3. `hocho.yml` initializers load `mitamae_ext.rb` and `mitamae_defines.rb`
-4. Loads host inventory via `yaml_dir` provider from `data/hosts/*/`
-5. Applies property providers to set defaults (`sudo_required: false`, `ssh_options.user: root`)
-6. Executes mitamae driver, connecting as root directly (no sudo/doas needed)
+- **`hocho_ext.rb`**: OpenBSD compatibility patches (sh instead of bash, rsync tweaks)
+- **`yaml_dir.rb`**: Custom inventory provider for YAML directory structure
 
 ### Custom Plugins
 
@@ -248,48 +192,103 @@ end
 ```
 
 ### Reference Materials
-- Mitamae source: `misc/mitamae/mrblib/mitamae/`
-- Example configs: `misc/sorah-cnw/`
+- Mitamae source: `misc/mitamae/mrblib/mitamae/` (run `rake prepare:examples` first)
+- Example configs: `misc/examples/` (sorah-cnw, example-ruby-infra, example-ruby-git)
 
-## Common Issues and Solutions
+## Data Collection Pattern (notify!)
 
-### Resource Actions and Subscriptions
+### The Problem
 
-When using `subscribes` with resources, you must specify the action that the **subscribing resource** should take, not the action of the watched resource.
+Multiple cookbooks need to contribute data to a shared config file:
+- pf.conf (firewall rules from httpd, smtpd, prosody, etc.)
+- newsyslog.conf (log rotation from various services)
+- inetd.conf (superserver entries)
+- relayd.conf, httpd.conf (virtual hosts)
 
-**Incorrect:**
+Ideally: collect all data, render template once, reload service if changed.
+
+### Why notify! Exists
+
+Mitamae `define` blocks are compile-time macros, not resources. They don't have access to `notifies`:
+
 ```ruby
-template "/path/to/file" do
-  subscribes :run, 'local_ruby_block[trigger]'  # ❌ templates don't have :run action
+# This DOES NOT work:
+define :pf_open do
+  node[:pf_snippets] << rule
+  notifies :create, "template[/etc/pf.conf]"  # ERROR: no method
 end
 ```
 
-**Correct:**
+The `notify!` define in `lib/mitamae_defines.rb` works around this by creating a `local_ruby_block` (which IS a resource) just to access `notifies`:
+
 ```ruby
-template "/path/to/file" do
-  subscribes :create, 'local_ruby_block[trigger]'  # ✅ use the template's action
+define :notify! do
+  parsed = NOTIFY_RX.match(params[:name])
+  local_ruby_block "notify!#{parsed[:action]}@#{parsed[:resource]}[#{parsed[:name]}]" do
+    block { true }
+    notifies parsed[:action].to_sym, "#{parsed[:resource]}[#{parsed[:name]}]"
+  end
+end
+
+# Usage:
+define :pf_open do
+  node[:pf_snippets] << rule
+  notify! "create@template[/etc/pf.conf]"
 end
 ```
 
-### SSH Configuration
+### How It Breaks
 
-In host secrets files, use `host_name` (with underscore) for net-ssh compatibility:
+The `local_ruby_block` resource is **designed to always report as changed**:
 
-**Incorrect:**
-```yaml
-ssh_options:
-  hostname: 192.0.2.1  # ❌ invalid net-ssh option
+```ruby
+# In mitamae: resource_executor/local_ruby_block.rb
+def set_current_attributes(current, action)
+  current.executed = false  # ALWAYS false
+end
+
+def set_desired_attributes(desired, action)
+  desired.executed = true   # ALWAYS true
+end
 ```
 
-**Correct:**
-```yaml
-properties:
-  addr: 192.0.2.1      # ✅ use addr in properties
-ssh_options:
-  host_name: 192.0.2.1 # ✅ or use host_name in ssh_options
-  port: 22
+This means every `notify!` call fires its notification, even on idempotent re-runs. If 20 cookbooks call `pf_open`, you see 20 "Notifying create to template..." messages.
+
+### Why It's (Mostly) Fine
+
+Mitamae's template resource IS idempotent:
+1. Template renders to temp file
+2. Diffs against existing file (`diff -q`)
+3. Only marks as `updated!` if content differs
+4. Downstream notifications (service reload) only fire on actual change
+
+So: **noisy logs, wasted CPU cycles, but correct behavior**.
+
+Delayed notifications are deduplicated per-recipe (not globally), so the template may render multiple times per run, but the final reload only happens if content changed.
+
+### Future Improvements
+
+For configs that support includes (httpd, sshd), use actual `.d/` directories:
+```
+/etc/httpd.d/*.conf  - httpd reads directly
+/etc/ssh/sshd.conf.d/*.conf - sshd reads directly
 ```
 
-### Running as Root
+For configs requiring aggregation (pf, inetd), options being considered:
+- Accept the current tax (noisy but correct)
+- Snippets.d directories rendered into single file
+- Custom resource plugin with proper idempotency
 
-This configuration connects as root directly (`ssh_options.user: root`) and has `sudo_required: false`. The `mitamae_ext.rb` monkey patch removes all sudo/doas wrapping since it's unnecessary when already running as root.
+## Operational Notes
+
+**Secrets handling:** SOPS decryption is automatic - `yaml_dir.rb` inventory provider detects `*.sops.yml` files and runs `popen3(sops -d)`.
+
+**Server roles:**
+- **f0rk** (arm64, 8GB RAM, 256GB disk) - Primary, runs everything
+- **airstrip3** (x86_64, 1GB RAM, 20GB disk) - Secondary DNS/mail relay only
+
+**Testing:** No staging environment. Use `hocho apply --dry-run`. See `misc/notes/TEST_PLAN.md` for planned libvirt-based test infrastructure (serverspec tests against isolated OpenBSD VMs).
+
+**Known issues:**
+- `local_ruby_block` always reports as "changed" by design - see "Data Collection Pattern" section above
+- Notifications are deduplicated per-recipe, not globally, so templates may render multiple times per run
