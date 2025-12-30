@@ -61,24 +61,6 @@ if mail_role == "primary"
     mode "0640"
     group "_mailpasswd"
   end
-
-  # openbsd_package "opensmtpd-table-ldap"
-  # smtpd_bind_pw =node[:ldapd_service_accounts].first { |a| a[:name] == "smtpd" }[:password]
-  # template "/etc/mail/ldap_table.conf" do
-  #   variables(
-  #     base_dn:node[:ldapd_base_dn],
-  #     smtpd_bind_pw: smtpd_bind_pw
-  #   )
-  # end
-  # mail_accounts.each do |acc|
-  #   ldap_object "mail=#{acc[:email]},ou=accounts,dc=b0x,dc=pw"
-  #   server node[:ldapd_server]
-  #   attrs({
-  #     objectClass: 'loginAccount',
-  #     mail: acc[:email],
-  #     userPassword: "{CRYPT}#{acc[:password_hash]}"
-  #   })
-  # end
 end
 
 template "/etc/mail/vdomains" do

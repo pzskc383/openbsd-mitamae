@@ -125,6 +125,7 @@ only with pubkeys and only on distinguished port.
   - small cookbook for using console access on /dev/tty0.
   - TODO: remove me. it was used when i VPS servers with serial console access. i don't anymore.
 - ldap
+  - relevant code lives in `feature/ldap` branch for now
   - sets up builtin base ldapd daemon to keep userbase singular between different services (so far prosody+xmpp+smptd)
     - using custom schema that has just username and password field. don't put our real configuration objects there. just auth.
     - TODO: main reason is ability to self-change passwords for users.
