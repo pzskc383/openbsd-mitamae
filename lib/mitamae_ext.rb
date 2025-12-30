@@ -15,15 +15,9 @@ module MItamae
 
     private
 
-    def build_command(command, user: nil, cwd: nil)
+    def build_command(command, _user: nil, cwd: nil)
       command = Shellwords.shelljoin(command) if command.is_a?(Array)
       command = "cd #{cwd.shellescape} && #{command}" if cwd
-
-      # Skip user switching - we're already root, don't call sudo/doas
-      # if user
-      #   command = "cd ~#{user.shellescape} ; #{command}"
-      # end
-
       command
     end
   end

@@ -1,5 +1,5 @@
 # Monkey-patches for hocho to support OpenBSD (sh instead of bash, configurable sudo)
-#
+
 require "hocho/drivers/mitamae"
 require "hocho/drivers/ssh_base"
 
@@ -11,18 +11,17 @@ module HochoOpenBSDPatches
       script = [*@mitamae_prepare_script].join("\n\n")
       raise "We have to prepare MItamae, but not mitamae_prepare_script is specified" if script.empty?
 
-      prepare_sudo do |_sh, sudovars, sudocmd|
-        log_prefix = "=> #{host.name} # "
-        log_prefix_white = " " * log_prefix.size
-        puts "#{log_prefix}#{script.each_line.map { |l| "#{log_prefix_white}#{l.chomp}" }.join("\n")}"
+      log_prefix = "=> #{host.name} # "
+      log_prefix_white = " " * log_prefix.size
+      puts "#{log_prefix}#{script.each_line.map { |l| "#{log_prefix_white}#{l.chomp}" }.join("\n")}"
 
-        ssh_run("sh") do |c|
-          set_ssh_output_hook(c)
+      ssh_run("sh") do |c|
+        set_ssh_output_hook(c)
 
-          c.send_data("cd #{host_basedir.shellescape}\n#{sudovars}\n#{sudocmd} sh <<-'HOCHOEOS'\n#{script}HOCHOEOS\n")
-          c.eof!
-        end
+        c.send_data("cd #{host_basedir.shellescape}\nsh <<-'HOCHOEOS'\n#{script}HOCHOEOS\n")
+        c.eof!
       end
+
       availability = mitamae_available?
       outdated = mitamae_outdated?
       return unless !availability || outdated
@@ -37,14 +36,12 @@ module HochoOpenBSDPatches
         itamae_cmd.push("--dry-run") if dry_run
         itamae_cmd.push(*run_list)
 
-        prepare_sudo do |_sh, sudovars, sudocmd|
-          puts "=> #{host.name} # #{itamae_cmd.shelljoin}"
-          ssh_run("sh") do |c|
-            set_ssh_output_hook(c)
+        puts "=> #{host.name} # #{itamae_cmd.shelljoin}"
+        ssh_run("sh") do |c|
+          set_ssh_output_hook(c)
 
-            c.send_data("cd #{host_basedir.shellescape}\n#{sudovars}\n#{sudocmd} #{itamae_cmd.shelljoin}\n")
-            c.eof!
-          end
+          c.send_data("cd #{host_basedir.shellescape}\n#{itamae_cmd.shelljoin}\n")
+          c.eof!
         end
       end
     end
@@ -52,7 +49,7 @@ module HochoOpenBSDPatches
 
   module SshBasePatches
     # Override deploy to only sync cookbooks directory
-    def deploy(deploy_dir: nil, shm_prefix: [])
+    def deploy(deploy_dir: nil, _shm_prefix: [])
       @host_basedir = deploy_dir if deploy_dir
 
       ssh_cmd = ['ssh', *host.openssh_config.flat_map { |l| ['-o', "\"#{l}\""] }].join(' ')

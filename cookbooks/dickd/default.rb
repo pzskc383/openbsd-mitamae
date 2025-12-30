@@ -18,7 +18,7 @@ git "dickd build dir" do
 end
 
 execute "compile erection" do
-  command "make erection.fast &&j install -onobody -gnobody -m 0755 erection.fast #{dickd_bin}"
+  command "make erection.fast && install -onobody -gnobody -m 0755 erection.fast #{dickd_bin}"
   cwd dickd_builddir
   not_if { has_dickd }
 end
