@@ -1,21 +1,20 @@
 # dickd - erection serving daemon
-dickd_bin = "/usr/local/bin/erection"
 dickd_builddir = "/tmp/dickd-build"
+dickd_chroot = "/var/bothome"
+dickd_bin = "#{dickd_chroot}/dick"
 
 has_dickd = run_command("test -x #{dickd_bin}", error: false).exit_status == 0
+has_dickd = false
 
-directory dickd_builddir do
+git "dickd build dir" do
+  repository "https://git.sr.ht/~pzskc383/erection"
+  destination dickd_builddir
   not_if { has_dickd }
 end
 
-%w[erection.c frames.h].each do |f|
-  remote_file "#{dickd_builddir}/#{f}" do
-    not_if { has_dickd }
-  end
-end
-
 execute "compile erection" do
-  command "cc -o #{dickd_bin} #{dickd_builddir}/erection.c"
+  command "make erection.fast; install -o nobody -g nobody -m 0755 #{dickd_bin}"
+  cwd dickd_builddir
   not_if { has_dickd }
 end
 
@@ -38,14 +37,4 @@ end
 
 service "inetd" do
   action %i[enable start]
-end
-
-file "/etc/ssh/sshd.conf.d/invalid" do
-  content <<~SSHD_CONFIG
-    Match Invalid-User LocalPort 22
-      ForceCommand "/usr/local/bin/erection -d"
-      PermitTTY no
-  SSHD_CONFIG
-
-  notifies :reload, "service[sshd]"
 end
