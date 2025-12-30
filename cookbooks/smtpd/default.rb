@@ -47,38 +47,25 @@ file "/etc/mail/mailname" do
 end
 
 if mail_role == "primary"
-  include_recipe "mailpasswd_group.rb"
-  include_recipe "../dovecot/vmail_user.rb"
+  openbsd_package "opensmtpd-table-ldap"
+  smtpd_bind_pw = node[:ldapd_service_accounts].first { |a| a[:name] == "smtpd" }[:password]
 
-  execute "usermod -G _mailpasswd _smtpd" do
-    not_if "id -nG _smtpd | grep -q _mailpasswd"
+  template "/etc/mail/ldap_table.conf" do
+    variables(
+      base_dn: node[:ldapd_base_dn],
+      smtpd_bind_pw: smtpd_bind_pw
+    )
   end
 
-  template "/etc/mail/passwd" do
-    source "templates/passwd.erb"
-    variables(accounts: mail_accounts)
-
-    mode "0640"
-    group "_mailpasswd"
+  mail_accounts.each do |acc|
+    ldap_object "mail=#{acc[:email]},ou=accounts,dc=b0x,dc=pw"
+    server node[:ldapd_server]
+    attrs({
+      objectClass: 'loginAccount',
+      mail: acc[:email],
+      userPassword: "{CRYPT}#{acc[:password_hash]}"
+    })
   end
-
-  # openbsd_package "opensmtpd-table-ldap"
-  # smtpd_bind_pw =node[:ldapd_service_accounts].first { |a| a[:name] == "smtpd" }[:password]
-  # template "/etc/mail/ldap_table.conf" do
-  #   variables(
-  #     base_dn:node[:ldapd_base_dn],
-  #     smtpd_bind_pw: smtpd_bind_pw
-  #   )
-  # end
-  # mail_accounts.each do |acc|
-  #   ldap_object "mail=#{acc[:email]},ou=accounts,dc=b0x,dc=pw"
-  #   server node[:ldapd_server]
-  #   attrs({
-  #     objectClass: 'loginAccount',
-  #     mail: acc[:email],
-  #     userPassword: "{CRYPT}#{acc[:password_hash]}"
-  #   })
-  # end
 end
 
 template "/etc/mail/vdomains" do
