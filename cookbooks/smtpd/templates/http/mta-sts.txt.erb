@@ -1,4 +1,6 @@
 version: STSv1
 mode: enforce
+<%- @mx.each do |hostname| -%>
 mx: <%=  hostname %>
+<%- end -%>
 max_age: 604800
