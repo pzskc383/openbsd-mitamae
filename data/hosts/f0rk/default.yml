@@ -10,6 +10,7 @@ properties:
     - cookbooks/dickd/default.rb
     - cookbooks/smtpd/default.rb
     - cookbooks/dovecot/default.rb
+    - cookbooks/git/default.rb
     - cookbooks/site_fqdn/default.rb
     - cookbooks/site_main/default.rb
     - cookbooks/site_box_main/default.rb

@@ -64,7 +64,7 @@ server "_pzskc383_main" {
             access "access.git-backend.log"
             error "error.git-backend.log"
         }
-        root "/usr/local/libexec/git/git-http-backend"
+        root "/cgi-bin/git-http-backend"
         fastcgi {
             socket "/run/slowcgi.sock"
             param DOCUMENT_ROOT "/"
@@ -81,7 +81,7 @@ server "_pzskc383_main" {
             access "access.git-backend.log"
             error "error.git-backend.log"
         }
-        root "/usr/local/libexec/git/git-http-backend"
+        root "/cgi-bin/git-http-backend"
         fastcgi {
             socket "/run/slowcgi.sock"
             param DOCUMENT_ROOT "/"

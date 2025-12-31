@@ -93,3 +93,6 @@ pf_open "git" do
   label "git"
   port 9418
 end
+
+include_recipe "cgit.rb"
+include_recipe "gotweb.rb"
