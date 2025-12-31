@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/responseschema/2006">
+	<Response xmlns="http://schemas.microsoft.com/exchange/autodiscover/outlook/responseschema/2006a">
+		<User>
+			<DisplayName>Excision Mail - <%= hostname %></DisplayName>
+		</User>
+		<Account>
+			<AccountType>email</AccountType>
+			<Action>settings</Action>
+			<ServiceHome>https://autodiscover.<%= hostname %></ServiceHome>
+			<Protocol>
+				<Type>IMAP</Type>
+				<Server>imap.<%= hostname %></Server>
+				<Port>143</Port>
+				<LoginName></LoginName>
+			</Protocol>
+			<Protocol>
+				<Type>SMTP</Type>
+				<Server>smtp.<%= hostname %></Server>
+				<Port>587</Port>
+				<LoginName></LoginName>
+			</Protocol>
+		</Account>
+	</Response>
+</Autodiscover>
