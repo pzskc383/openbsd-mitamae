@@ -41,7 +41,7 @@ Metrics/MethodLength:
   Max: 40
 
 Metrics/BlockLength:
-  Max: 40
+  Max: 50
 
 Metrics/AbcSize:
   CountRepeatedAttributes: false
@@ -86,6 +86,10 @@ Itamae/RecipePath:
 
 Layout/CaseIndentation:
   EnforcedStyle: end
-  
+
 Layout/EndAlignment:
   EnforcedStyleAlignWith: variable
+
+# mruby has no String.tr
+Performance/StringReplacement:
+  Enabled: false
