@@ -19,22 +19,36 @@ database:
     journal-db-max-size: 50M
 
 key:
-  - id: tsig-default
+<%- node[:knot_tsig].each do |keyname, keydata| %>
+  - id: <%= keyname %>.tsig
     algorithm: hmac-sha256
-    secret: <%= @knot_tsig_secret %>
+    secret: <%= keydata %>
+<%- end -%>
 
 remote:
 <% @hosts.each do |hostname, host_data| -%>
   - id: <%= hostname %>
     address: <%= host_data[:v4] %>
-    key: tsig-default
+    key: xfr.tsig
 <% end -%>
 
 acl:
-  - id: lego_nsupdate
+  - id: acme_nsupdate
+    key: acme.tsig
     address: [<%= node[:network_setup].v4.address %>, <%= node[:network_setup].v6.address %>]
     action: update
-    key: tsig-default
+    update-type: TXT
+    update-owner: _acme-challenge.*
+    update-owner: _acme-challenge
+    update-owner-match: pattern
+
+  - id: zone_transfer
+    key: xfr.tsig
+    action: transfer
+<%- @hosts.each_key do |hostname| -%>
+    remote: <%= hostname %>
+<%- end -%>
+
 
 policy:
   - id: sane
@@ -63,7 +77,8 @@ template:
     journal-content: all
     dnssec-signing: on
     dnssec-policy: sane
-    acl: lego_nsupdate
+    acl: acme_nsupdate
+    acl: zone_transfer
 
   - id: slave
     storage: "/var/db/knot/zones"

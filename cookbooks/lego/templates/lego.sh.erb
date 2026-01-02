@@ -18,7 +18,7 @@ export EXEC_POLLING_INTERVAL=6
 export RFC2136_NAMESERVER=<%= node[:hosts].f0rk.v4 %>
 export RFC2136_TSIG_KEY=tsig-default
 export RFC2136_TSIG_ALGORITHM=hmac-sha256
-export RFC2136_TSIG_SECRET=<%= node[:knot_tsig_secret] %>
+export RFC2136_TSIG_SECRET=<%= node[:knot_tsig][:acme] %>
 <%- end -%>
 
 COMMAND="${1-run}"
