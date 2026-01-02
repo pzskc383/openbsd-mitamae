@@ -1,0 +1,64 @@
+#!/bin/ksh
+#
+# Issue/renew certificate: <%= @name %>
+#
+set -eu
+
+CONFDIR=/etc/ssl/uacme
+CERT_NAME="<%= @name %>"
+PRIMARY_DOMAIN="<%= @cert[:domains].first %>"
+CHALLENGE="<%= @cert[:challenge] || 'dns-01' %>"
+
+# hook config (exported for hook.sh)
+<%- if @cert[:challenge] == 'http-01' -%>
+export ACME_WEBROOT="<%= @cert[:webroot] || '/var/www/acme' %>"
+<%- else -%>
+export ACME_ZONE="<%= @cert[:zone] || @cert[:domains].first.split('.')[-2,2].join('.') %>"
+export KNOT_SERVER="<%= node[:hosts].f0rk.v4 %>"
+export TSIG_KEY="tsig-default"
+export TSIG_SECRET="<%= node[:knot_tsig][:acme] %>"
+<%- end -%>
+
+_log() {
+    echo "uacme-${CERT_NAME}: $*"
+    logger -t "uacme-${CERT_NAME}" "$*"
+}
+
+_deploy_cert() {
+    _log "deploying certificate"
+
+    install -o root -g _cert -m 0444 \
+        "${CONFDIR}/${PRIMARY_DOMAIN}/cert.pem" \
+        "/etc/ssl/${CERT_NAME}.crt"
+
+    install -o root -g _cert -m 0440 \
+        "${CONFDIR}/private/${PRIMARY_DOMAIN}/key.pem" \
+        "/etc/ssl/private/${CERT_NAME}.key"
+
+    touch /etc/ssl/.needs_restart
+}
+
+_log "issuing/renewing certificate (${CHALLENGE})"
+
+# uacme exits 0 if cert was issued/renewed, 1 if no action needed, 2 on error
+/usr/local/bin/uacme -c "$CONFDIR" -h "${CONFDIR}/hook.sh" \
+    -t EC -b 384 \
+    issue -m "${CHALLENGE}" \
+<%- @cert[:domains].each do |domain| -%>
+    <%= domain %> \
+<%- end -%>
+
+rc=$?
+case $rc in
+0)
+    _log "certificate issued/renewed"
+    _deploy_cert
+    ;;
+1)
+    _log "certificate still valid, no action needed"
+    ;;
+*)
+    _log "error (exit code $rc)"
+    exit $rc
+    ;;
+esac
