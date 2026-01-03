@@ -1,6 +1,5 @@
 node.reverse_merge!({
   git_root: "/var/www/repos",
-  git_authorized_keys: []
 })
 
 git_root = node[:git_root]
@@ -12,9 +11,9 @@ package "git"
 execute "create git user" do
   command ""
   command <<~USERADD_CMD
-    useradd -g _gitdaemon -G _ssh_public \
+    useradd -G _ssh_public \
       -d #{git_root} -u 1997 \
-      -s /usr/local/bin/git-shell \
+      -s /bin/rksh \
       -c 'Git hosting user' \
       git
   USERADD_CMD
@@ -23,21 +22,8 @@ end
 
 directory git_root do
   owner "git"
-  group "_gitdaemon"
-  mode "0755"
-end
-
-directory "#{git_root}/.ssh" do
-  owner "git"
-  group "_gitdaemon"
-  mode "0700"
-end
-
-file "#{git_root}/.ssh/authorized_keys" do
-  content "#{node[:git_authorized_keys].join("\n")}\n"
-  mode "0600"
-  owner "git"
   group "git"
+  mode "0755"
 end
 
 execute "create repo template" do
@@ -50,7 +36,7 @@ end
     source "files/git-hooks/#{hook}"
     mode "0755"
     owner "git"
-    group "_gitdaemon"
+    group "git"
   end
 end
 
@@ -65,34 +51,12 @@ end
     source "files/git-shell/#{cmd}"
     mode "0750"
     owner "git"
-    group "_gitdaemon"
+    group "git"
   end
 end
 
-service "gitdaemon" do
-  action :enable
-end
-
-execute "set gitdaemon flags" do
-  command <<~CMD
-    rcctl set gitdaemon flags --verbose --syslog --informative-errors \
-      --base-path=#{git_root} #{git_root}
-  CMD
-  notifies :restart, "service[gitdaemon]"
-end
-
-execute "set gitdaemon user" do
-  command <<~CMD
-    rcctl set gitdaemon user git
-  CMD
-  notifies :restart, "service[gitdaemon]"
-end
-
-include_recipe "../pf/defines.rb"
-pf_open "git" do
-  label "git"
-  port 9418
-end
-
+include_recipe "acl.rb"
 include_recipe "cgit.rb"
-include_recipe "gotweb.rb"
+include_recipe "repos.rb"
+# include_recipe "gitdaemon.rb"
+# include_recipe "gotweb.rb"

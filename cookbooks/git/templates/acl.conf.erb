@@ -1,0 +1,10 @@
+# Format: tag repository access_level
+#   tag - user identifier or '*'
+#   repository - repository name or '*'
+#   access_level - 'r' for read, 'w' for write, empty for no access
+
+<%- node[:git_acl_rules].each do |tag, rule_list| -%>
+<%- rule_list.each do |rule| -%>
+<%= tag %> <%= rule[:repo] %> <%= rule[:access] %>
+<%- end -%>
+<%- end -%>

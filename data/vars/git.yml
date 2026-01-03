@@ -1,0 +1,90 @@
+git_repos:
+  - name: awesome
+    category: configs
+    description: awesome wm config. boring and almost default.
+  - name: cgit
+    category: forks
+    description: latest cgit with couple patches and http-backend-static
+  - name: colors
+    category: attic
+    description: HUSL-based palette generator. I even used it once.
+  - name: deinterceptor
+    category: attic
+    description: failed attempt at both writing c and decoding secret messages from a text game.
+  - name: dotfiles
+    category: configs
+    description: actual dotfiles, hg-git export
+  - name: erection
+    category: projects
+    description: obscene animation stolen from gw.boston.ru
+  - name: flux
+    category: configs
+    description: flux k8s config for talos
+  - name: hellmoo-tintin
+    category: attic
+    description: TinTin++ scripts for playing HellMOO
+  - name: htmail-view
+    category: forks
+    description: html email viewer using WebKit2
+  - name: m0lly
+    category: projects
+    description: Markov chain-based telegram ruby bot. slow & stupid.
+  - name: mitamae
+    category: forks
+    description: my fork of M-Itamae, small cheflike tool
+  - name: mute
+    category: projects
+    description: A MOO server implementation in elixir. no idea why.
+  - name: my.own.last.fm
+    category: attic
+    description: Music storage DB schema and most important endpoint of last.fm API.
+  - name: noisy
+    category: attic
+    description: things that takes data from syslog and puts into notify-send.
+  - name: obli-stra
+    category: attic
+    description: oblique strategies fortune file
+  - name: obsd-ansible
+    category: openbsd
+    description: ansible playbooks for openbsd
+  - name: obsd-mitamae
+    category: openbsd
+    description: mitamae cookbooks for setting up OpenBSD servers
+  - name: oniongen
+    category: misc
+    description: multithreaded fancy address generator for tor.
+  - name: openbsd-build
+    category: openbsd
+    description: build pkg environment for OpenBSD
+  - name: openbsd-ports
+    category: openbsd
+    description: my openbsd ports
+  - name: pass
+    hidden: true
+
+git_acl_rules:
+  '*':
+    - repo: '*'
+      access: 'r'
+  me:
+    - repo: '*'
+      access: 'rw'
+  pass:
+    - repo: '*'
+      access: ''
+    - repo: 'pass'
+      access: 'rw'
+
+git_authorized_keys:
+    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGdET/i5w6zhhvE0oQ+7WctYDIj+cgpvVIFMIUiuSS1E alex@orange
+      tag: me
+    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPNSUQwuUZIIZ7vVe1kWo+Gwn4QfFVFy9igUPho7w89z alex_d
+      tag: me
+    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHjyNsWyfjM+3pK8FMQfyE6d7bUmQBadFf+xCBZQ3Qmu alex@typewriter.20251226
+      tag: me
+    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBQ0EQ4GslBEakpgVTDFSwjOLVWF7dShMxab70mBlSgB flux@ex1t
+      tag: me
+    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINKIPG6NGs/60FAC3vQSKdKpOiR1dvNqCFzI4DAwalNf pass@xa2
+      tag: pass
+    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII6Hi6X4l4Tym98B63U6n+wiv6ZKiFGsuhTdFUfK9JYD alex@fuckup.pass
+      tag: pass

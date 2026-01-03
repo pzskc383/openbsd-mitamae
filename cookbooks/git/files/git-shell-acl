@@ -1,0 +1,70 @@
+#!/bin/sh
+
+set -e -u
+# set -x
+
+errexit() {
+  echo $* >&2
+  exit 1
+}
+
+tag="$1"
+shift
+
+ACL_FILE="$HOME/acl.conf"
+if [ ! -f "$ACL_FILE" ]; then
+  errexit "ACL configuration file not found: $ACL_FILE"
+fi
+
+# if [ -z "${SSH_ORIGINAL_COMMAND:-}" ]; then
+#   exec git-shell
+# fi
+
+command="${SSH_ORIGINAL_COMMAND% *}"
+repo_name="${SSH_ORIGINAL_COMMAND#* }"
+repo_name="${repo_name#\'}"
+repo_name="${repo_name%\'}"
+repo_name="${repo_name#~/}"
+
+
+case "$command" in
+  git-receive-pack)
+    action=push
+    access_bit=w
+    ;;
+  git-upload-pack)
+    action=pull
+    access_bit=r
+    ;;
+  git-upload-archive)
+    action=archive
+    access_bit=r
+    ;;
+esac
+
+if [ ! -d "$HOME/$repo_name" ] || [ -z "$repo_name" ]; then
+  errexit "Repository not found"
+fi
+
+in_acl=0
+allowed=0
+
+while read -r acl_tag acl_repo acl_access; do
+  if [ "$acl_tag" = "*" ] || [ "$acl_tag" = "$tag" ]; then
+    in_acl=1
+    
+    if ( [ "$acl_repo" = "*" ] || [ "$acl_repo" = "$repo_name" ] ) && \
+      expr "$acl_access" : ".*${access_bit}.*" >&-;
+    then
+      allowed=1
+    fi
+  fi
+done < "$ACL_FILE"
+
+if [ $in_acl -eq 0 ] || [ $allowed -eq 0 ]; then
+  logger -t git-acl "denying access to $repo from $tag"
+  errexit "Acess denied"
+fi
+
+
+exec $command $repo_name

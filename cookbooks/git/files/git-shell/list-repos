@@ -13,17 +13,14 @@ table_line() {
 
 table_line "NAME" "CATEGORY" "DESCRIPTION"
 
-( 
-	cd /var/www/repos || _err "git root doesn't exist!"
-	
-	for d in *; do
-		if ! [ -f "$d"/config ]; then continue; fi
-		if ! [ -f "$d"/git-daemon-export-ok ]; then continue; fi
+for d in ./*; do
+	if ! [ -d "$d" ]; then continue; fi
+	if ! [ -f "$d"/config ]; then continue; fi
+	if ! [ -f "$d"/git-daemon-export-ok ]; then continue; fi
 
-		name="${d%/}"
-		category="$(git config get -f "${d}"/config gitweb.category 2>/dev/null)"
-		description="$(git config get -f "${d}"/config gitweb.description 2>/dev/null)"
+	name="${d%/}"
+	category="$(git config get -f "${d}"/config gitweb.category 2>/dev/null)"
+	description="$(git config get -f "${d}"/config gitweb.description 2>/dev/null)"
 
-		table_line "$name" "$category" "$description"
-	done
-)
+	table_line "$name" "$category" "$description"
+done
