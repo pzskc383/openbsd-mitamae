@@ -68,7 +68,7 @@ template '/etc/knot/knot.conf' do
     hosts: other_hosts,
     current_host: node[:hostname]
   )
-  notifies :restart, 'service[knot]'
+  notifies :reload, 'service[knot]'
 end
 
 service 'knot' do

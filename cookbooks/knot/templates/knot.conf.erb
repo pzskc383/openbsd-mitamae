@@ -1,22 +1,39 @@
 server:
     rundir: "/var/run/knot"
     user: _knot:_knot
-    automatic-acl: on
     listen: <%= node[:network_setup].v4.address %>@53
     listen: <%= node[:network_setup].v6.address %>@53
     identity: ""
     version: ""
     nsid: ""
+    async-start: true
+    udp-workers: 2
+    tcp-workers: 1
+    background-workers: 1
 
 log:
   - target: syslog
     any: info
   - target: /var/log/knot/debug.log
-    zone: debug
+    any: debug
+
+mod-stats:
+  - id: full
+    edns-presence: on
+    flag-presence: on
+    query-type: on
+    request-edns-option: true
+    response-edns-option: true
+    reply-nodata: true
+    query-size: true
+    reply-size: true
+
+
 
 database:
     storage: "/var/db/knot"
     journal-db-max-size: 50M
+    journal-db-mode: asynchronous
 
 key:
 <%- node[:knot_tsig].each do |keyname, keydata| %>
@@ -38,12 +55,12 @@ acl:
     address: [<%= node[:network_setup].v4.address %>, <%= node[:network_setup].v6.address %>]
     action: update
     update-type: TXT
-    update-owner: _acme-challenge.*
-    update-owner: _acme-challenge
+    update-owner: name
+    update-owner-name: _acme-challenge.*
+    update-owner-name: _acme-challenge
     update-owner-match: pattern
 
   - id: zone_transfer
-    key: xfr.tsig
     action: transfer
 <%- @hosts.each_key do |hostname| -%>
     remote: <%= hostname %>
@@ -68,6 +85,7 @@ policy:
 
 template:
   - id: signed
+    module: mod-stats/full
     storage: "/var/db/knot/zones"
     file: "%s.zone"
     semantic-checks: on
@@ -79,8 +97,11 @@ template:
     dnssec-policy: sane
     acl: acme_nsupdate
     acl: zone_transfer
+    journal-max-depth: 5
+    journal-max-usage: 10M
 
   - id: slave
+    module: mod-stats/full
     storage: "/var/db/knot/zones"
     file: "%s.slave.zone"
     semantic-checks: on
