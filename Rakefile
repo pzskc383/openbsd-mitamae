@@ -63,6 +63,7 @@ namespace :prepare do
   desc "set up working environment (cron plugin + dist binaries + project notes)"
   task :deps do
     git_submodule_reinit "plugins/mitamae-plugin-resource-cron"
+    git_submodule_reinit "plugins/mitamae-plugin-resource-openbsd_package"
     sh "git worktree add misc/dist dist" unless Dir.exist?("misc/dist")
     sh "git worktree add misc/notes notes" unless Dir.exist?("misc/notes")
   end

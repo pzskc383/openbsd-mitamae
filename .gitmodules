@@ -2,6 +2,10 @@
 	path = plugins/mitamae-plugin-resource-cron
 	url = https://github.com/itamae-plugins/mitamae-plugin-resource-cron
 
+[submodule "plugins/mitamae-plugin-resource-openbsd_package"]
+	path = plugins/mitamae-plugin-resource-openbsd_package
+	url = https://pzskc383.net/code/itamae-plugin-resource-openbsd_package
+
 [submodule "example-ruby-infra"]
 	path = misc/examples/example-ruby-infra
 	url = https://github.com/ruby/ruby-infra-recipe
@@ -17,6 +21,6 @@
 
 [submodule "mitamae"]
 	path = misc/mitamae
-	url = git://pzskc383.net/mitamae
+	url = https://pzskc383.net/mitamae
 	branch = local-fixes
 	shallow = true

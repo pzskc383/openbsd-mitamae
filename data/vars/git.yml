@@ -61,6 +61,9 @@ git_repos:
     description: my openbsd ports
   - name: pass
     hidden: true
+  - name: itamae-plugin-resource-openbsd_package
+    category: forks
+    description: (m)itamae resource plugin for installing/removing packages on OpenBSD
 
 git_acl_rules:
   '*':
