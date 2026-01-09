@@ -69,7 +69,10 @@ server "_pzskc383_main" {
             socket "/run/slowcgi.sock"
             param DOCUMENT_ROOT "/"
             param GIT_PROJECT_ROOT "/repos"
-            param GIT_HTTP_EXPORT_ALL "true"
+            param GIT_CONFIG_COUNT "1"
+            param GIT_CONFIG "/repos/.gitconfig"
+            param GIT_CONFIG_KEY_1 "safe.directory"
+            param GIT_CONFIG_VALUE_1 "/repos"
             param HOME "/repos"
         }
     }
@@ -86,7 +89,9 @@ server "_pzskc383_main" {
             socket "/run/slowcgi.sock"
             param DOCUMENT_ROOT "/"
             param GIT_PROJECT_ROOT "/repos"
-            param GIT_HTTP_EXPORT_ALL "true"
+            param GIT_CONFIG "/repos/.gitconfig"
+            # param GIT_CONFIG_KEY_1 "safe.directory"
+            # param GIT_CONFIG_VALUE_1 "/repos"
             param HOME "/repos"
         }
     }

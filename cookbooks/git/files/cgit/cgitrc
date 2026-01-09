@@ -21,18 +21,18 @@ branch-sort=age
 repository-sort=age
 
 max-blob-size=2000
-#max-stats=year
-summary-log=200
-max-atom-items=50
+max-stats=year
+summary-log=10
+max-atom-items=10
 max-repo-count=100
 
 robots=noindex, nofollow
 
 head-include=/conf/cgit-head.inc.html
-root-title=pzskc383 project storage
+root-title=pzskc383 git dump
 root-desc=if you dont like something, it probably was even worse before you noticed.
 
-clone-url=https://$HTTP_HOST$SCRIPT_NAME/$CGIT_REPO_URL git@$HTTP_HOST:$CGIT_REPO_URL
+clone-url=https://$HTTP_HOST$SCRIPT_NAME/$CGIT_REPO_URL ssh://$HTTP_HOST/~/$CGIT_REPO_URL
 
 strict-export=git-daemon-export-ok
 scan-path=/repos
@@ -40,6 +40,7 @@ scan-path=/repos
 readme=:Readme
 readme=:README
 readme=:Readme.md
+readme=:README.md
 readme=:Readme.org
 
 mimetype.git=image/git

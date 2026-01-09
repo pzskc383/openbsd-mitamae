@@ -8,17 +8,18 @@ errexit() {
   exit 1
 }
 
-tag="$1"
+tag="${1-anonymous}"
 shift
 
 ACL_FILE="$HOME/acl.conf"
 if [ ! -f "$ACL_FILE" ]; then
-  errexit "ACL configuration file not found: $ACL_FILE"
+  errexit "Invalid configuration"
 fi
 
-# if [ -z "${SSH_ORIGINAL_COMMAND:-}" ]; then
-#   exec git-shell
-# fi
+if [ -z "${SSH_ORIGINAL_COMMAND:-}" ]; then
+  #exec git-shell
+  errexit "Invalid command"
+fi
 
 command="${SSH_ORIGINAL_COMMAND% *}"
 repo_name="${SSH_ORIGINAL_COMMAND#* }"
@@ -62,7 +63,7 @@ while read -r acl_tag acl_repo acl_access; do
 done < "$ACL_FILE"
 
 if [ $in_acl -eq 0 ] || [ $allowed -eq 0 ]; then
-  logger -t git-acl "denying access to $repo from $tag"
+  logger -t git-acl "denying access to $repo_name from $tag"
   errexit "Acess denied"
 fi
 

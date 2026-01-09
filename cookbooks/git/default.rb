@@ -13,7 +13,7 @@ execute "create git user" do
   command <<~USERADD_CMD
     useradd -G _ssh_public \
       -d #{git_root} -u 1997 \
-      -s /bin/rksh \
+      -s /usr/local/bin/git-shell \
       -c 'Git hosting user' \
       git
   USERADD_CMD
