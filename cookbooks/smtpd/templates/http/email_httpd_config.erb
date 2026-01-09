@@ -1,6 +1,6 @@
 # mta-sts for <%= @domain %>
 server "_sts_<%= @domain_nodots %>" {
-    alias "mta-sts."
+    alias "mta-sts.<%= @domain %>"
 
     listen on $loopback port $httpd_tls_port
 
@@ -10,11 +10,13 @@ server "_sts_<%= @domain_nodots %>" {
         error "error.mail.log"
     }
 
-    location .well-known/mta-sts.txt {
+    location ".well-known/mta-sts.txt" {
         root "/htdocs/mail/<%= @domain %>/mta-sts"
     }
 
-    location * { return }
+    location * {
+        block drop
+    }
 }
 
 # thunderbird autoconfig for <%= @domain %>
@@ -29,11 +31,13 @@ server "_tb_autoconf_<%= @domain_nodots %>" {
         error "error.mail.log"
     }
 
-    location /mail/config-v1.1.xml {
+    location "/mail/config-v1.1.xml" {
         root "/htdocs/mail/<%= @domain %>/mozilla_autoconf"
     }
 
-    location * { return }
+    location * {
+        block drop
+    }
 }
 # outlook autoconfig for <%= @domain %>
 server "_outlook_autoconf_<%= @domain_nodots %>" {
@@ -47,9 +51,11 @@ server "_outlook_autoconf_<%= @domain_nodots %>" {
         error "error.mail.log"
     }
 
-    location /autodiscover/autodiscover.xml {
+    location "/autodiscover/autodiscover.xml" {
         root "/htdocs/mail/<%= @domain %>/outlook_autoconf"
     }
 
-    location * { return }
+    location * {
+        block drop
+    }
 }
