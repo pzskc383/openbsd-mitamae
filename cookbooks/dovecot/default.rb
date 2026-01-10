@@ -68,8 +68,6 @@ SIEVE_SCRIPTS = {
 }.freeze
 
 SIEVE_SCRIPTS.each do |dir, scripts|
-  puts dir.inspect
-  puts scripts.inspect
   basedir = "/usr/local/share/dovecot/#{dir}"
 
   directory basedir do
