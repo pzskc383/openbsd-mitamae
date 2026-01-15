@@ -13,13 +13,15 @@ module HochoOpenBSDPatches
 
       log_prefix = "=> #{host.name} # "
       log_prefix_white = " " * log_prefix.size
-      puts "#{log_prefix}#{script.each_line.map { |l| "#{log_prefix_white}#{l.chomp}" }.join("\n")}"
+      puts "#{log_prefix}#{script.each_line.map {
+        |line| "#{log_prefix_white}#{line.chomp}"
+      }.join("\n")}"
 
-      ssh_run("sh") do |c|
-        set_ssh_output_hook(c)
+      ssh_run("sh") do |cmd|
+        set_ssh_output_hook(cmd)
 
-        c.send_data("cd #{host_basedir.shellescape}\nsh <<-'HOCHOEOS'\n#{script}HOCHOEOS\n")
-        c.eof!
+        cmd.send_data("cd #{host_basedir.shellescape}\nsh <<-'HOCHOEOS'\n#{script}HOCHOEOS\n")
+        cmd.eof!
       end
 
       availability = mitamae_available?
@@ -30,14 +32,15 @@ module HochoOpenBSDPatches
       raise "prepared MItamae, but it's still #{status}"
     end
 
-    def run_mitamae(dry_run: false)
+    def run_mitamae(**kwopts)
+      @mitamae_options.push('--dry-run') unless !!kwopts.dry_run
+
       with_host_node_json_file do
         itamae_cmd = [
           @mitamae_path,
           "local", "-j",
           host_node_json_path,
-          (dry_run ? '--dry-run' : nil),
-          *(@mitamae_options + (run_list || []))
+          *@mitamae_options,
         ].shelljoin
 
         puts "=> #{host.name} # #{itamae_cmd}"
