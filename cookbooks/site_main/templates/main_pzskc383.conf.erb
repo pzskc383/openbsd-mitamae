@@ -14,10 +14,8 @@ server "_pzskc383_static" {
     listen on $loopback port $httpd_plain_port
     listen on $loopback port $httpd_tls_port
 
-    location * {
-        root "/htdocs/pub"
-        directory auto index
-    }
+    root "/htdocs/pzskc383/pub"
+    directory auto index
 }
 
 # main domain

@@ -13,9 +13,9 @@ module HochoOpenBSDPatches
 
       log_prefix = "=> #{host.name} # "
       log_prefix_white = " " * log_prefix.size
-      puts "#{log_prefix}#{script.each_line.map {
-        |line| "#{log_prefix_white}#{line.chomp}"
-      }.join("\n")}"
+      puts "#{log_prefix}#{script.each_line.map do |line|
+        "#{log_prefix_white}#{line.chomp}"
+      end.join("\n")}"
 
       ssh_run("sh") do |cmd|
         set_ssh_output_hook(cmd)
@@ -33,7 +33,7 @@ module HochoOpenBSDPatches
     end
 
     def run_mitamae(**kwopts)
-      @mitamae_options.push('--dry-run') unless !!kwopts.dry_run
+      @mitamae_options.push('--dry-run') if kwopts[:dry_run]
 
       with_host_node_json_file do
         itamae_cmd = [
@@ -41,6 +41,7 @@ module HochoOpenBSDPatches
           "local", "-j",
           host_node_json_path,
           *@mitamae_options,
+          *run_list
         ].shelljoin
 
         puts "=> #{host.name} # #{itamae_cmd}"
