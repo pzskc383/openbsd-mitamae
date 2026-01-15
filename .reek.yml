@@ -1,0 +1,22 @@
+---
+exclude_paths:
+  - bin/
+  - cookbooks/*/files/
+  - cookbooks/*/templates/
+  - .bundle/
+  - misc/
+  - plugins/
+  - spec/
+  - test/
+  - vendor/
+
+
+detectors:
+  IrresponsibleModule:
+    enabled: false
+
+  TooManyStatements:
+    max_statements: 20
+
+  UtilityFunction:
+    public_methods_only: true

@@ -10,7 +10,7 @@ module Hocho
       def initialize(path:)
         @path = path
         @vars_dir = File.join(File.dirname(@path), "vars")
-        @global_attrs = load_global_vars!
+        @global_attrs = load_global_vars
         super()
       end
 
@@ -24,10 +24,10 @@ module Hocho
 
             YAML.safe_load(stdout, aliases: true).except(:sops)
           else
-            YAML.load_file(filename, aliases: true)
+            YAML.safe_load_file(filename, aliases: true)
           end
 
-        data = {} if data.nil?
+        data ||= {}
 
         Hocho::Utils::Symbolize.keys_of(data)
       end
@@ -44,27 +44,13 @@ module Hocho
           end
         end
 
-        files.map { |f| load_file(f) }.reduce({}) { |acc, data| deep_merge(acc, data) }
+        files.map { |fn| load_file(fn) }.reduce({}) { |acc, data| deep_merge(acc, data) }
       end
 
-      def deep_merge(hash1, hash2)
-        hash1.merge(hash2) { |_k, v1, v2| v1.is_a?(Hash) && v2.is_a?(Hash) ? deep_merge(v1, v2) : v2 }
-      end
-
-      def build_hosts_data(loaded_hosts)
-        data = {}
-
-        loaded_hosts.each do |name, value|
-          attrs = value.dig(:properties, :attributes) || {}
-          net = attrs[:network_setup] || {}
-          data[name] = {
-            dns_shortname: attrs[:dns_shortname],
-            v4: net.dig(:v4, :address),
-            v6: net.dig(:v6, :address)
-          }
+      def deep_merge(hash_left, hash_right)
+        hash_left.merge(hash_right) do |_k, val_left, val_right|
+          val_left.is_a?(Hash) && val_right.is_a?(Hash) ? deep_merge(val_left, val_right) : val_right
         end
-
-        data
       end
 
       def hosts
@@ -102,8 +88,24 @@ module Hocho
 
       private
 
-      def load_global_vars!
+      def load_global_vars
         load_dir_vars(@vars_dir)
+      end
+
+      def build_hosts_data(loaded_hosts)
+        data = {}
+
+        loaded_hosts.each do |name, value|
+          attrs = value.dig(:properties, :attributes) || {}
+          net = attrs[:network_setup] || {}
+          data[name] = {
+            dns_shortname: attrs[:dns_shortname],
+            v4: net.dig(:v4, :address),
+            v6: net.dig(:v6, :address)
+          }
+        end
+
+        data
       end
     end
   end

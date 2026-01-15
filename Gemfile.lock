@@ -4,23 +4,54 @@ GEM
     ansi (1.5.0)
     ast (2.4.3)
     base64 (0.3.0)
-    bcrypt_pbkdf (1.1.1)
+    bcrypt_pbkdf (1.1.2)
+    bigdecimal (3.3.1)
     coderay (1.1.3)
+    concurrent-ruby (1.3.6)
+    dry-configurable (1.2.0)
+      dry-core (~> 1.0, < 2)
+      zeitwerk (~> 2.6)
+    dry-core (1.0.2)
+      concurrent-ruby (~> 1.0)
+      logger
+      zeitwerk (~> 2.6)
+    dry-inflector (1.1.0)
+    dry-initializer (3.1.1)
+    dry-logic (1.5.0)
+      concurrent-ruby (~> 1.0)
+      dry-core (~> 1.0, < 2)
+      zeitwerk (~> 2.6)
+    dry-schema (1.13.4)
+      concurrent-ruby (~> 1.0)
+      dry-configurable (~> 1.0, >= 1.0.1)
+      dry-core (~> 1.0, < 2)
+      dry-initializer (~> 3.0)
+      dry-logic (>= 1.4, < 2)
+      dry-types (>= 1.7, < 2)
+      zeitwerk (~> 2.6)
+    dry-types (1.7.2)
+      bigdecimal (~> 3.0)
+      concurrent-ruby (~> 1.0)
+      dry-core (~> 1.0)
+      dry-inflector (~> 1.0)
+      dry-logic (~> 1.4)
+      zeitwerk (~> 2.6)
     ed25519 (1.4.0)
-    hashie (5.0.0)
+    hashie (5.1.0)
+      logger
     hocho (0.3.8)
       hashie
       itamae
       net-ssh (>= 4.1.0)
       thor
     io-console (0.8.2)
-    itamae (1.14.1)
+    itamae (1.14.2)
       ansi
       hashie
       schash (~> 0.1.0)
       specinfra (>= 2.64.0, < 3.0.0)
       thor (>= 1.0.0)
-    json (2.16.0)
+    json (2.18.0)
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -33,20 +64,30 @@ GEM
     parser (3.3.10.0)
       ast (~> 2.4.1)
       racc
-    prism (1.6.0)
+    prism (1.8.0)
     pry (0.16.0)
       coderay (~> 1.1)
       method_source (~> 1.0)
       reline (>= 0.6.0)
+    pry-doc (1.7.0)
+      pry (~> 0.11)
+      yard (~> 0.9.21)
     racc (1.8.1)
     rainbow (3.1.1)
     rake (13.3.1)
-    rbs (3.9.5)
+    rbs (3.6.1)
       logger
+    reek (6.4.0)
+      dry-schema (~> 1.13.0)
+      logger (~> 1.6)
+      parser (~> 3.3.0)
+      rainbow (>= 2.0, < 4.0)
+      rexml (~> 3.1)
     regexp_parser (2.11.3)
     reline (0.6.3)
       io-console (~> 0.5)
-    rubocop (1.81.7)
+    rexml (3.4.4)
+    rubocop (1.82.1)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
@@ -54,13 +95,13 @@ GEM
       parser (>= 3.3.0.2)
       rainbow (>= 2.2.2, < 4.0)
       regexp_parser (>= 2.9.3, < 3.0)
-      rubocop-ast (>= 1.47.1, < 2.0)
+      rubocop-ast (>= 1.48.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 4.0)
-    rubocop-ast (1.48.0)
+    rubocop-ast (1.49.0)
       parser (>= 3.3.7.2)
-      prism (~> 1.4)
-    rubocop-itamae (0.2.0)
+      prism (~> 1.7)
+    rubocop-itamae (0.2.1)
       lint_roller
       rubocop (>= 1.72.0)
     rubocop-performance (1.26.1)
@@ -74,26 +115,34 @@ GEM
       lint_roller (~> 1.1)
       rubocop (~> 1.72, >= 1.72.1)
       rubocop-ast (>= 1.44.0, < 2.0)
-    ruby-lsp (0.26.4)
+    ruby-lsp (0.25.0)
       language_server-protocol (~> 3.17.0)
       prism (>= 1.2, < 2.0)
       rbs (>= 3, < 5)
+    ruby-lsp-rake (0.3.6)
+      ruby-lsp (~> 0.25.0)
+    ruby-lsp-reek (0.3.1)
+      reek (~> 6.0, >= 5.0)
+      ruby-lsp (~> 0.17, >= 0.12.0)
+      sorbet-runtime (~> 0.5, >= 0.5.5685)
     ruby-progressbar (1.13.0)
     schash (0.1.2)
     sfl (2.3)
+    sorbet-runtime (0.6.12885)
     specinfra (2.94.1)
       base64
       net-scp
       net-ssh (>= 2.7)
       net-telnet
       sfl
-    thor (1.4.0)
+    thor (1.5.0)
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
-    unicode-emoji (4.1.0)
+    unicode-emoji (4.2.0)
+    yard (0.9.38)
+    zeitwerk (2.6.18)
 
 PLATFORMS
-  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
@@ -102,6 +151,7 @@ DEPENDENCIES
   hocho
   itamae (~> 1.14)
   pry
+  pry-doc
   rake
   rubocop
   rubocop-itamae
@@ -109,9 +159,11 @@ DEPENDENCIES
   rubocop-rake
   rubocop-thread_safety
   ruby-lsp
+  ruby-lsp-rake (~> 0.3.6)
+  ruby-lsp-reek (~> 0.3.1)
 
 RUBY VERSION
-   ruby 3.4.7p58
+   ruby 3.0.7p220
 
 BUNDLED WITH
-   2.6.9
+   2.2.33

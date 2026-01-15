@@ -1,5 +1,5 @@
 node.reverse_merge!({
-  git_root: "/var/www/repos",
+  git_root: "/var/www/repos"
 })
 
 git_root = node[:git_root]

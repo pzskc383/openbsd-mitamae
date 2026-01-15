@@ -55,8 +55,10 @@ def git_submodule_reinit(path)
 end
 
 def ppp(what)
-  require 'pry/color_printer'
-  Pry::ColorPrinter.pp what
+  # require 'pry/color_printer'
+  # Pry::ColorPrinter.pp what
+  # puts JSON.dump(what)
+  puts YAML.dump(what)
 end
 
 namespace :prepare do
@@ -78,39 +80,39 @@ namespace :prepare do
 
   desc "set up and compile mitamae sources"
   task :mitamae do
-      unless Dir.exist?("misc/mitamae/mruby")
-        git_submodule_reinit "misc/mitamae"
-        sh "cd misc/mitamae && rake compile && git checkout ."
-      end
+    unless Dir.exist?("misc/mitamae/mruby")
+      git_submodule_reinit "misc/mitamae"
+      sh "cd misc/mitamae && rake compile && git checkout ."
+    end
+  end
+end
+
+namespace :hocho do
+  desc "pry-inspect configuration"
+  task :debug_config do
+    config = hocho_config
+    inventory = hocho_inventory
+    binding.pry # rubocop:disable Lint/Debugger
+  end
+
+  desc "list defined hosts"
+  task :list do
+    host_list.each do |host|
+      puts host
     end
   end
 
-  namespace :hocho do
-    desc "pry-inspect configuration"
-    task :debug_config do
-      config = hocho_config
-      inventory = hocho_inventory
-      binding.pry # rubocop:disable Lint/Debugger
+  desc "show host's attributes"
+  task :show do |_t, args|
+    vars = {}
+    hocho_hosts(args.extras).each do |host|
+      vars[host.name] = host.properties.attributes
     end
 
-    desc "list defined hosts"
-    task :list do
-      host_list.each do |host|
-        puts host
-      end
-    end
+    ppp vars
+  end
 
-    desc "show host's attributes"
-    task :show do |_t, args|
-      vars = {}
-      hocho_hosts(args.extras).each do |host|
-        vars[host.name] = host.properties.attributes
-      end
-
-      ppp vars
-    end
-
-    desc "show host's run_list"
+  desc "show host's run_list"
   task :run_list do |_t, args|
     vars = {}
     hocho_hosts(args.extras).each do |host|

@@ -1,0 +1,10 @@
+ignore:
+  - "bin/**/*"
+  - "cookbooks/*/files/**/*"
+  - "cookbooks/*/templates/**/*"
+  - ".bundle/**/*"
+  - "misc/**/*"
+  - "plugins/**/*"
+  - "spec/**/*"
+  - "test/**/*"
+  - "vendor/**/*"

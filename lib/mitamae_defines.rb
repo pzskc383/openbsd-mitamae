@@ -15,7 +15,7 @@ define :block_in_file, content: nil, marker_start: nil, marker_end: nil do
   end
 end
 
-define :lines_in_file, lines: [] do # rubocop:disable Metrics/BlockLength
+define :lines_in_file, lines: [] do
   commands = params[:lines].map do |line|
     command =
       case line

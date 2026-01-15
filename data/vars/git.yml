@@ -81,13 +81,11 @@ git_acl_rules:
 git_authorized_keys:
     - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGdET/i5w6zhhvE0oQ+7WctYDIj+cgpvVIFMIUiuSS1E alex@orange
       tag: me
-    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPNSUQwuUZIIZ7vVe1kWo+Gwn4QfFVFy9igUPho7w89z alex_d
-      tag: me
     - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHjyNsWyfjM+3pK8FMQfyE6d7bUmQBadFf+xCBZQ3Qmu alex@typewriter.20251226
       tag: me
     - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBQ0EQ4GslBEakpgVTDFSwjOLVWF7dShMxab70mBlSgB flux@ex1t
       tag: me
+    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP7Ia/3MeiXlPsKBGAWAmdTk0x7R2y6RL7VFJsv7K9FC alex@fuckup
+      tag: me
     - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINKIPG6NGs/60FAC3vQSKdKpOiR1dvNqCFzI4DAwalNf pass@xa2
-      tag: pass
-    - pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII6Hi6X4l4Tym98B63U6n+wiv6ZKiFGsuhTdFUfK9JYD alex@fuckup.pass
       tag: pass

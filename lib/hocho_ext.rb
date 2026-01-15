@@ -32,34 +32,35 @@ module HochoOpenBSDPatches
 
     def run_mitamae(dry_run: false)
       with_host_node_json_file do
-        itamae_cmd = [@mitamae_path, "local", "-j", host_node_json_path, *@mitamae_options]
-        itamae_cmd.push("--dry-run") if dry_run
-        itamae_cmd.push(*run_list)
+        itamae_cmd = [
+          @mitamae_path,
+          "local", "-j",
+          host_node_json_path,
+          (dry_run ? '--dry-run' : nil),
+          *(@mitamae_options + (run_list || []))
+        ].shelljoin
 
-        puts "=> #{host.name} # #{itamae_cmd.shelljoin}"
-        ssh_run("sh") do |c|
-          set_ssh_output_hook(c)
+        puts "=> #{host.name} # #{itamae_cmd}"
 
-          c.send_data("cd #{host_basedir.shellescape}\n#{itamae_cmd.shelljoin}\n")
-          c.eof!
+        ssh_run("sh") do |shell|
+          set_ssh_output_hook(shell)
+
+          shell.send_data("cd #{host_basedir.shellescape}\n#{itamae_cmd}\n")
+          shell.eof!
         end
       end
     end
   end
 
   module SshBasePatches
-    # Override deploy to only sync cookbooks directory
     def deploy(deploy_dir: nil, _shm_prefix: [])
       @host_basedir = deploy_dir if deploy_dir
 
-      ssh_cmd = ['ssh', *host.openssh_config.flat_map { |l| ['-o', "\"#{l}\""] }].join(' ')
+      ssh_cmd = ['ssh', *host.openssh_config.flat_map { |option| ['-o', "\"#{option}\""] }].join(' ')
 
-      # Only include cookbooks directory, exclude everything else
-      hostname = if host.hostname.include?(':')
-        "[#{host.hostname}]"
-      else
-        host.hostname
-      end
+      hostname = host.hostname.then { |name| name.include?(':') ? "[#{name}]" : name }
+
+      # Only include cookbooks lib and plugins directories
       rsync_cmd = [
         'rsync', '-a', '--copy-links', '--copy-unsafe-links', '--delete',
         '--rsh', ssh_cmd,

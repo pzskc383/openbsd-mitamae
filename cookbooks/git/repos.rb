@@ -3,6 +3,8 @@ node[:git_repos] ||= []
 git_root = node[:git_root]
 git_default_owner = "Alex D."
 
+GIT_CONFIG_SECTIONS = %w[cgit gitweb].freeze
+GIT_CONFIG_KEYS = %i[category description].freeze
 
 node[:git_repos].each do |repo|
   name = repo[:name]
@@ -17,14 +19,14 @@ node[:git_repos].each do |repo|
   config_cmd = "git --git-dir=#{repo_path} config set"
   config_commands = ["set -e -u"]
 
-  %w[cgit gitweb].each do |pk|
-    %i[category description]. each do |k|
+  GIT_CONFIG_SECTIONS.each do |pk|
+    GIT_CONFIG_KEYS.each do |k|
       config_commands << "#{config_cmd} #{pk}.#{k} '#{repo[k]}'" if repo[k]
     end
     config_commands << "#{config_cmd} #{pk}.owner '#{git_default_owner}'"
   end
 
-  if repo[:hidden] then
+  if repo[:hidden]
     config_commands << "#{config_cmd} cgit.hide true"
     config_commands << "#{config_cmd} cgit.ignore true"
     config_commands << "rm -f #{repo_path}/git-daemon-export-ok"

@@ -1,3 +1,25 @@
+# static domain
+server "_pzskc383_static" {
+    alias "i.pzskc383.net"
+    alias "pub.pzskc383.net"
+    alias "i.pzskc383.dp.ua"
+    alias "pub.pzskc383.dp.ua"
+
+    log {
+        style forwarded
+        access "access.main-static.log"
+        error "error.main-static.log"
+    }
+
+    listen on $loopback port $httpd_plain_port
+    listen on $loopback port $httpd_tls_port
+
+    location * {
+        root "/htdocs/pub"
+        directory auto index
+    }
+}
+
 # main domain
 server "_pzskc383_main" {
     alias "*.pzskc383.net"
@@ -111,13 +133,13 @@ server "_pzskc383_main" {
     }
 
     # gotwebd
-    location "/got" { 
+    location "/got" {
         block return 301 "/got/"
     }
     location "/got/" {
         fastcgi { socket "/run/gotweb.sock" }
     }
-    
+
     location "/got/*" {
         root "/htdocs/gotwebd"
         request strip 1
@@ -142,7 +164,7 @@ server "_main_plain" {
         access "access.main-plain.log"
         error "error.main-plain.log"
     }
-    
+
     location "/.well-known/acme-challenge/*" {
         root "/htdocs/pzskc383"
     }

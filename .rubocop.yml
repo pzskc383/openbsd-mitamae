@@ -23,7 +23,7 @@ AllCops:
   - "cookbooks/*/templates/**/*"
   - ".bundle/**/*"
   - "misc/**/*"
-  - "plugins/mitamae-plugin-resource-cron/**/*"
+  - "plugins/**/*"
   - "spec/**/*"
   - "test/**/*"
   - "vendor/**/*"
