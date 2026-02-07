@@ -19,6 +19,7 @@ properties:
     - cookbooks/site_box_boot/default.rb
     - cookbooks/gopher/default.rb
     - cookbooks/prosody/default.rb
+    - cookbooks/openclaw/default.rb
   attributes:
     dns_shortname: f0
     motd: |-

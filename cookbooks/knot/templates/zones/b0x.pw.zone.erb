@@ -21,6 +21,9 @@ $TTL 15m
 @ IN AAAA <%= node[:hosts].f0rk.v6 %>
 
 ; public host records
+main IN CNAME the.main
+far IN CNAME the.far
+
 the.main IN A <%= node[:hosts].f0rk.v4 %>
 the.main IN AAAA <%= node[:hosts].f0rk.v6 %>
 the.far IN A <%= node[:hosts].airstrip3.v4 %>

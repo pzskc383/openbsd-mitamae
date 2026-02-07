@@ -86,6 +86,9 @@ pass out $log_out on $if_public proto tcp to port smtp user _smtpd
 pass out $log_out on $if_public proto { tcp udp } user root allow-opts
 # traceroute
 pass out $log_out on $if_public proto udp to port 33434:33690 user root
+<% node[:pf_out_snippets].each do |snippet| -%>
+<%= snippet %>
+<%- end -%>
 
 
 # vim: ft=pf

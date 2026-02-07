@@ -26,7 +26,7 @@ end
 include_recipe "../openbsd_server/defines.rb"
 newsyslog_snippet "http_site_post" do
   content <<~EXTRA
-    /var/www/logs/access.box_post.log                644  4     *    $W0   Z "rcctl reload httpd"
-    /var/www/logs/error.box_post.log                 644  7     250  *     Z "rcctl reload httpd"
+    /var/www/logs/access.box_post.log                644  4     *    $W0   Z "rcctl -q reload httpd"
+    /var/www/logs/error.box_post.log                 644  7     250  *     Z "rcctl -q reload httpd"
   EXTRA
 end

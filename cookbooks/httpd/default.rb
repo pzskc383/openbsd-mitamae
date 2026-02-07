@@ -73,9 +73,9 @@ end
 include_recipe "../openbsd_server/defines.rb"
 newsyslog_snippet "http_default" do
   content <<~LOGS
-    /var/www/logs/access.default.log                644  4     *    $W0   Z "rcctl reload httpd"
-    /var/www/logs/error.default.log                 644  7     250  *     Z "rcctl reload httpd"
-    /var/www/logs/access.fqdn.log                   644  4     *    $W0   Z "rcctl reload httpd"
-    /var/www/logs/error.fqdn.log                    644  7     250  *     Z "rcctl reload httpd"
+    /var/www/logs/access.default.log                644  4     *    $W0   Z "rcctl -q reload httpd"
+    /var/www/logs/error.default.log                 644  7     250  *     Z "rcctl -q reload httpd"
+    /var/www/logs/access.fqdn.log                   644  4     *    $W0   Z "rcctl -q reload httpd"
+    /var/www/logs/error.fqdn.log                    644  7     250  *     Z "rcctl -q reload httpd"
   LOGS
 end

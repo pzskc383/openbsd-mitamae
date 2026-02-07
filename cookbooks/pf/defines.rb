@@ -1,5 +1,6 @@
 node.reverse_merge!({
-  pf_snippets: []
+  pf_snippets: [],
+  pf_out_snippets: []
 })
 
 # check and reload pf config
@@ -16,8 +17,9 @@ template "/etc/pf.conf" do
   notifies :run, "execute[reload_pf]"
 end
 
-define :pf_snippet, content: nil do
-  node[:pf_snippets] << (params[:content] || params[:name])
+define :pf_snippet, content: nil, type: nil do
+  snippets_key = params[:type] == :out ? :pf_out_snippets : :pf_snippets
+  node[snippets_key] << (params[:content] || params[:name])
 
   notify!("create@template[/etc/pf.conf]")
 end

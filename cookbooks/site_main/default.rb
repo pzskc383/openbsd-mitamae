@@ -29,8 +29,8 @@ end
 include_recipe "../openbsd_server/defines.rb"
 snippet = %w[main cgit main-plain git-dumb].map do |host|
   <<~EXTRA
-    /var/www/logs/access.#{host}.log                644  4     *    $W0   Z "rcctl reload httpd"
-    /var/www/logs/error.#{host}.log                 644  7     250  *     Z "rcctl reload httpd"
+    /var/www/logs/access.#{host}.log                644  4     *    $W0   Z "rcctl -q reload httpd"
+    /var/www/logs/error.#{host}.log                 644  7     250  *     Z "rcctl -q reload httpd"
   EXTRA
 end.join
 newsyslog_snippet "http_site_main" do
