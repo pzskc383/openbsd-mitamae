@@ -1,0 +1,32 @@
+properties:
+  run_list:
+    - cookbooks/openbsd_server/default.rb
+    - cookbooks/openbsd_wireguard/default.rb
+    - cookbooks/pf/default.rb
+    - cookbooks/openbsd_admin/default.rb
+    - cookbooks/knot/default.rb
+    - cookbooks/lego/default.rb
+    - cookbooks/httpd/default.rb
+    - cookbooks/dickd/default.rb
+    - cookbooks/smtpd/default.rb
+    - cookbooks/dovecot/default.rb
+    - cookbooks/git/default.rb
+    - cookbooks/site_fqdn/default.rb
+    - cookbooks/site_main/default.rb
+    - cookbooks/site_box_main/default.rb
+    - cookbooks/site_box_post/default.rb
+    - cookbooks/site_box_talk/default.rb
+    - cookbooks/site_box_boot/default.rb
+    - cookbooks/gopher/default.rb
+    - cookbooks/prosody/default.rb
+    - cookbooks/openclaw/default.rb
+  attributes:
+    dns_shortname: v0
+    motd: |-
+                   #    #
+          m   m    #    #mmm    mmm
+      ~   "m m"    #    #" "#  #"  #   ~
+           #m#     #    #   #  #""""
+            #    mm#mm  ##m#"  "#mm"
+
+
