@@ -68,6 +68,8 @@ namespace :prepare do
     git_submodule_reinit "plugins/mitamae-plugin-resource-openbsd_package"
     sh "git worktree add misc/dist dist" unless Dir.exist?("misc/dist")
     sh "git worktree add misc/notes notes" unless Dir.exist?("misc/notes")
+    sh "rm -f AGENTS.md && ln -s misc/notes/CLAUDE.md AGENTS.md"
+    sh "rm -f CLAUDE.md && ln -s misc/notes/CLAUDE.md CLAUDE.md"
   end
 
   desc "set up example repos"
