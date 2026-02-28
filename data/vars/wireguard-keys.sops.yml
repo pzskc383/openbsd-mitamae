@@ -4,9 +4,11 @@ wg_net:
       privkey: ENC[AES256_GCM,data:osXsMVWG6Or+FE93P2zv7tJbm5SBklT0D2J4HbldoDeANKKZ28ZGeVbgmGE=,iv:ngVsnC032JqcB0Ade6oT6ITPPUTPbSiV9FVfePCAy/0=,tag:MqqS2Ri0jlYs4NlrAH4Ntg==,type:str]
     airstrip3:
       privkey: ENC[AES256_GCM,data:hVpXFYG5MJ9hH5pSNr1/D85MFRJmIG3s+YId/KmZ3lo+XbboJXWhTrw7CjA=,iv:z7owgkZW8bCb844mlw0rPDRnkRXIYA48FJXBBFNSqEI=,tag:F6jF3XYfL52Be/NIVC3pOQ==,type:str]
+    v1be:
+      privkey: ENC[AES256_GCM,data:3LdaxkNO/S+cLWFaTU9BC+ZNgw8mz9J/nbAxBocmfqre3jd2VNwm0f/Pu4Q=,iv:sBdyALacAWclF7gW3FtJpjTtRvG6gCTh4xxUwE7O2AI=,tag:xIizIE8XGlY0uPxoUrCqSg==,type:str]
 sops:
-  lastmodified: "2025-12-24T13:16:10Z"
-  mac: ENC[AES256_GCM,data:DYjSA4EknwnAPtvgoLL5g1GeJ+6aaDCjsMF5DTP6GgIxuoieuJJ7FEndRhBDBK1lqMlNl4/xrfZrWv7uqXp3b+rN4KzVSmPratIpMmbf+peXTLIXy6Hjb41zdhHXzGado1WVm6KZRAsU2wy7lpuxa43n7tbGrmSaRoxs2e8Dar8=,iv:5XmsmUSNyCQ7T0Y1AK/nMg61c0A9Xz9ryBbYqJcyotg=,tag:7Fy9c9FtGcbM1XlDM9R/9w==,type:str]
+  lastmodified: "2026-02-19T19:26:57Z"
+  mac: ENC[AES256_GCM,data:DM557BHUFbhgUMFuFRabOf0+zNuGHkK6K8RWzcCo+zU6dyv6T78TCWIIv+jTo1v2RrfRlzQB6CFadcZqUkWH9WmG/6Qrw80IzS68k69SjsfKmM0h53qm3/8j32eQJMS3pvcvEHUy7ajzZsBj//JTToNFMUKul5iU8px/IiGUEMQ=,iv:3q+fu7zSKLjAPHi1rdsiUKd4x4wzcXfKbRq6w/TApmc=,tag:F41FO+h/oAHl1xNmEdMGsw==,type:str]
   pgp:
     - created_at: "2025-12-24T13:16:10Z"
       enc: |-
@@ -20,4 +22,4 @@ sops:
         -----END PGP MESSAGE-----
       fp: 79F51922C72D82B81B2A20C234B4AFADB4E7D7A3
   encrypted_regex: .+
-  version: 3.10.2
+  version: 3.11.0
