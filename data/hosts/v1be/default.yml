@@ -9,7 +9,7 @@ properties:
     - cookbooks/httpd/default.rb
     - cookbooks/dickd/default.rb
     - cookbooks/smtpd/default.rb
-    - cookbooks/dovecot/default.rb
+    # - cookbooks/dovecot/default.rb
     - cookbooks/git/default.rb
     - cookbooks/site_fqdn/default.rb
     - cookbooks/site_main/default.rb
@@ -18,15 +18,11 @@ properties:
     - cookbooks/site_box_talk/default.rb
     - cookbooks/site_box_boot/default.rb
     - cookbooks/gopher/default.rb
-    - cookbooks/prosody/default.rb
-    - cookbooks/openclaw/default.rb
+    # - cookbooks/prosody/default.rb
   attributes:
     dns_shortname: v0
     motd: |-
-                   #    #
-          m   m    #    #mmm    mmm
-      ~   "m m"    #    #" "#  #"  #   ~
-           #m#     #    #   #  #""""
-            #    mm#mm  ##m#"  "#mm"
-
-
+      |   ▌ ▌▗▌ ▛▀▖▞▀▖   |
+      |   ▚▗▘ ▌ ▙▄▘ ▄▘   |
+      |   ▝▞  ▌ ▌ ▌▖ ▌   |
+      |    ▘ ▝▀ ▀▀ ▝▀    |

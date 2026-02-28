@@ -22,6 +22,7 @@ template "/etc/prosody/prosody.cfg.lua" do
   notifies :restart, "service[prosody]"
   owner "_prosody"
   group "_prosody"
+  notifies :restart, "service[prosody]"
 end
 
 # openbsd_package "mercurial"

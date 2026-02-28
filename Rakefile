@@ -51,7 +51,7 @@ end
 
 def git_submodule_reinit(path)
   # sh "rm -rf #{path}"
-  sh "git submodule update --init --remote #{path}"
+  sh "git submodule update --init --recursive --force --remote #{path}"
 end
 
 def ppp(what)

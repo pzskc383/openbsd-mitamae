@@ -5,6 +5,7 @@ mail_domains:
     catchall_subdomains: true
     servers:
       - f0rk
+      - v1be
       - airstrip3
 
   pzskc383.dp.ua:
@@ -13,6 +14,7 @@ mail_domains:
     catchall_subdomains: true
     servers:
       - f0rk
+      - v1be
       - airstrip3
 
   post.b0x.pw:
@@ -28,4 +30,5 @@ mail_domains:
       - reports: owner@post.b0x.pw
     servers:
       - f0rk
+      - v1be
       - airstrip3

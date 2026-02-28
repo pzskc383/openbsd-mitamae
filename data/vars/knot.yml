@@ -2,9 +2,11 @@ knot_zones:
   - name: pzskc383.net
     primary: f0rk
     secondaries:
+      - v1be
       - airstrip3
 
   - name: b0x.pw
     primary: f0rk
     secondaries:
+      - v1be
       - airstrip3
