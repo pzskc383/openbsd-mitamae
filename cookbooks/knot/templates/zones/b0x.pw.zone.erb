@@ -21,20 +21,27 @@ $TTL 15m
 @ IN AAAA <%= node[:hosts].f0rk.v6 %>
 
 ; public host records
-main IN CNAME the.main
-far IN CNAME the.far
 
-the.main IN A <%= node[:hosts].f0rk.v4 %>
-the.main IN AAAA <%= node[:hosts].f0rk.v6 %>
-the.far IN A <%= node[:hosts].airstrip3.v4 %>
-the.far IN AAAA <%= node[:hosts].airstrip3.v6 %>
+main IN A <%= node[:hosts].f0rk.v4 %>
+main IN AAAA <%= node[:hosts].f0rk.v6 %>
+main IN CNAME main
 
-the.main IN LOC 48 12 29.4 N 16 22 25.8 E 0.0m 10.0m 1000m 10m
-the.far  IN LOC 51 30 26.5 N  0  7 39.9 W 0.0m 10.0m 1000m 10m
+far IN A <%= node[:hosts].airstrip3.v4 %>
+far IN AAAA <%= node[:hosts].airstrip3.v6 %>
+far IN CNAME far
+
+cool IN A <%= node[:hosts].v1be.v4 %>
+cool IN AAAA <%= node[:hosts].v1be.v6 %>
+cool IN CNAME cool
+
+main IN LOC 48 12 29.4 N 16 22 25.8 E 0.0m 10.0m 1000m 10m
+cool IN LOC 48 12 29.4 N 16 22 25.8 E 0.0m 10.0m 1000m 10m
+far  IN LOC 51 30 26.5 N  0  7 39.9 W 0.0m 10.0m 1000m 10m
 
 ; sshfp (manual)
-the.main IN SSHFP 4 2 60fc27ce45f77ebd4f25261f5e1b31b329fc8dc7f5d8b190ed84aad8f88c1f94
-the.far IN SSHFP 4 2 f635ca62e1ec817a533094a92dcda52033ef6c7b2c9fcbc254779866c2b0dfe7
+main IN SSHFP 4 2 60fc27ce45f77ebd4f25261f5e1b31b329fc8dc7f5d8b190ed84aad8f88c1f94
+far  IN SSHFP 4 2 f635ca62e1ec817a533094a92dcda52033ef6c7b2c9fcbc254779866c2b0dfe7
+cool in sshfp 4 2 b286bd1c4d4284da38cae475a7865da4d3ca9dca766b55d1e6c6f115a532a136
 
 ; internal hosts records
 <%- node[:hosts].each do |hostname, data| -%>
@@ -44,21 +51,19 @@ x.<%= hostname.to_s %> IN A <%= data.v4 %>
 x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%- end %>
 
-; ex1t server
-<%- %w[the.smart x.ex1t s.x1].each do |name| -%>
-<%= name %> IN A <%= node[:ex1t].v4 %>
-<%= name %> IN AAAA <%= node[:ex1t].v6 %>
-<%- end -%>
-
 ; post+aliases
 <%- %w[post my.post mail my.mail i.was.abused.by.the].each do |host| -%>
+
 ; main records for <%= host %>
 <%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 <%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
-<%= host %> IN MX 10 the.main
-<%= host %> IN MX 20 the.far
+<%= host %> IN MX 10 main
+<%= host %> IN MX 20 far
+<%= host %> IN MX 20 cool
+
 imap.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 smtp.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
+
 ; extra records for <%= host %>
 <%= host %> IN TXT "v=spf1 mx -all"
 _dmarc.<%= host %> IN TXT "v=DMARC1; p=quarantine; rua=mailto:reports+dmarc.a@post.b0x.pw; ruf=mailto:reports+dmarc.f@post.b0x.pw; sp=quarantine; fo=0; pct=100; adkim=s; aspf=s"
@@ -67,13 +72,16 @@ _mta-sts.<%= host %> IN TXT "v=STSv1; id=1767225600"
 <%- if node[:mail_dkim_dns_rr] -%>
 e._domainkey.<%= host %> IN TXT "<%= node[:mail_dkim_dns_rr] %>"
 <%- end -%>
+
 ; srv records for <%= host %>
-_imap._tcp.<%= host %> IN SRV 0 0 143 the.main
-_submission._tcp.<%= host %> IN SRV 0 0 465 the.main
+_imap._tcp.<%= host %> IN SRV 0 0 143 main
+_submission._tcp.<%= host %> IN SRV 0 0 465 main
+
 ; disabled srv records for <%= host %>
 _pop3._tcp.<%= host %> IN SRV 0 0 0 .
 _pop3s._tcp.<%= host %> IN SRV 0 0 0 .
 _imaps._tcp.<%= host %> IN SRV 0 0 0 .
+
 <%- end -%>
 
 ; boot.my.b0x
@@ -86,6 +94,7 @@ uefi.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
 uefi.<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
 <%= host %> IN MX 0 .
 <%- end -%>
+
 ; boot.*.on.my.b0x
 <%- %w[bsd alpine fedora].each do |os| -%>
 boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
@@ -109,15 +118,18 @@ uefi.boot.<%= os %>.on.my IN MX 0 .
 <%= domain %> IN MX 0 .
 <%= domain %> IN TXT "v=spf1 -all"
 <%- end -%>
+
 ; main talk srv
 _xmpp-client._tcp.talk  IN SRV 0 0 5222 talk
 _xmpp-server._tcp.talk  IN SRV 0 0 5269 talk
 _xmpps-client._tcp.talk IN SRV 0 0 5223 talk
 _xmpps-server._tcp.talk IN SRV 0 0 5270 talk
+
 ; turn/stun
 _stun._udp              IN SRV 0 0 3478 turn.talk
 _stun._tcp              IN SRV 0 0 3478 turn.talk
 _stuns._udp             IN SRV 0 0 3478 turn.talk
+
 ; subdomains for components
 _xmpp-server._tcp.chat.talk    IN SRV 0 0 5269 chat.talk
 _xmpps-server._tcp.chat.talk   IN SRV 0 0 5270 chat.talk
