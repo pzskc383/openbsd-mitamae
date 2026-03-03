@@ -1,5 +1,4 @@
 properties:
-  ssh_target: v1be
   run_list:
     - cookbooks/openbsd_server/default.rb
     - cookbooks/openbsd_wireguard/default.rb
@@ -21,9 +20,13 @@ properties:
     - cookbooks/gopher/default.rb
     # - cookbooks/prosody/default.rb
   attributes:
-    dns_shortname: v0
+    dns_shortname: v1
     motd: |-
+      +------------------+
       |   ▌ ▌▗▌ ▛▀▖▞▀▖   |
       |   ▚▗▘ ▌ ▙▄▘ ▄▘   |
       |   ▝▞  ▌ ▌ ▌▖ ▌   |
       |    ▘ ▝▀ ▀▀ ▝▀    |
+      +------------------+
+ssh_options:
+  target: v1be

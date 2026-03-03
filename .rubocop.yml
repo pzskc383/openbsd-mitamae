@@ -1,14 +1,15 @@
 ---
 plugins:
-  - rubocop-rake
-  - rubocop-itamae
   - rubocop-thread_safety
   - rubocop-performance
+  # - rubocop-rake
+  # - rubocop-itamae
 
 
 AllCops:
   NewCops: enable
   TargetRubyVersion: 3.0
+  SuggestExtensions: false
   Include:
   - Rakefile
   - Gemfile
@@ -79,10 +80,6 @@ Style/FormatStringToken:
 
 Security/YAMLLoad:
   Enabled: false
-
-Itamae/RecipePath:
-  Enabled: false
-
 Layout/CaseIndentation:
   EnforcedStyle: end
 
@@ -92,3 +89,6 @@ Layout/EndAlignment:
 # mruby has no String.tr
 Performance/StringReplacement:
   Enabled: false
+
+# Itamae/RecipePath:
+#   Enabled: false

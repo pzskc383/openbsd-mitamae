@@ -5,6 +5,8 @@ peers = {
 }
 
 node[:wg_net][:peers].each do |peer_name, peer|
+  puts node[:hosts].inspect
+  puts YAML.dump(node[:hosts])
   if peer_name == node[:hostname]
     peers[:me] = peer
   elsif node[:hosts][peer_name]

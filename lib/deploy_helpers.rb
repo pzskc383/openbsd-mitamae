@@ -1,6 +1,6 @@
 require 'open3'
+require "hashie"
 require 'yaml'
-require 'hashie'
 
 module DeployHelpers
   def self.deep_merge(base, overlay)
@@ -26,7 +26,8 @@ module DeployHelpers
     end
 
     loaded = files.map { |f| load_yaml(f) }
-    loaded.reduce({}) { |acc, data| deep_merge(acc, data) }
+    merged = loaded.reduce({}) { |acc, data| deep_merge(acc, data) }
+    ::Hashie::Mash.quiet(:keys).new(merged)
   end
 
   def self.load_yaml(path)
