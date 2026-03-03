@@ -1,4 +1,5 @@
 properties:
+  ssh_target: f0
   run_list:
     - cookbooks/openbsd_server/default.rb
     - cookbooks/openbsd_wireguard/default.rb

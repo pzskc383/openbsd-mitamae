@@ -1,11 +1,11 @@
+require 'English'
 require "bundler/setup"
 require "pry"
-require "hocho/config"
-require "hocho/inventory"
-require "hocho/runner"
+require "pathname"
+require "open3"
+require "yaml"
 
-require_relative "lib/hocho_ext"
-require_relative "lib/hocho/inventory_providers/yaml_dir"
+require_relative "lib/deploy_helpers"
 
 require 'rubocop/rake_task'
 RuboCop::RakeTask.new(:cop) do |task|
@@ -18,39 +18,47 @@ def host_list
   end
 end
 
-def hocho_config
-  Hocho::Config.load(ENV['HOCHO_CONFIG'] || './hocho.yml')
+def run_cmd(*cmd)
+  puts "=> #{cmd.join(' ')}"
+  system(*cmd) or abort "Command failed: #{cmd.first}"
 end
 
-def hocho_inventory
-  config = hocho_config
-  Hocho::Inventory.new(config.inventory_providers, config.property_providers)
-end
+def apply_host(hostname, dry_run: false, verbose: false)
+  globals = DeployHelpers.load_config("./data/vars")
+  host_config = DeployHelpers.load_config("./data/hosts/#{hostname}")
+  base_data = globals.merge(host_config)
 
-def hocho_hosts(extras = [])
-  inventory = hocho_inventory
-  if extras.empty?
-    inventory.hosts
-  else
-    extras.map do |name|
-      inventory.filter({ name: name }).first
-    end
+  run_list = base_data.dig("properties", "run_list") || []
+  abort "No run_list defined for #{hostname}" if run_list.empty?
+
+  ssh_target = base_data.dig("properties", "ssh_target") || "root@#{hostname}"
+
+  run_cmd(%w[rsync -av --delete --exclude data cookbooks lib plugins #{ssh_target}:/etc/mitamae/])
+  run_cmd("ssh", ssh_target, "mkdir -p /etc/mitamae/data")
+
+  IO.popen(["ssh", ssh_target, "tee /etc/mitamae/node.yaml > /dev/null"], "w") do |cmd|
+    cmd.write(YAML.dump(merged_data))
   end
-end
 
-def hocho_run(host, dry_run: false)
-  config = hocho_config
-  Hocho::Runner.new(
-    host,
-    driver: host.preferred_driver,
-    base_dir: config.base_dir,
-    initializers: config[:initializers] || [],
-    driver_options: config[:driver_options][host.preferred_driver] || {}
-  ).run(dry_run: dry_run)
+  abort "Failed to write node.yaml" unless $CHILD_STATUS.success?
+
+  mitamae_opts = []
+  mitamae_opts << "-n" if dry_run
+  mitamae_opts << "--log-level debug" if verbose
+
+  mitamae_cmd = <<~CMD
+    cd /etc/mitamae && \
+      mitamae local \
+        #{mitamae_opts.join(' ')} \
+        -y node.yaml -y runtime.yaml \
+        lib/mitamae_ext.rb lib/mitamae_defines.rb \
+        #{run_list.join(' ')}
+  CMD
+
+  run_cmd("ssh", ssh_target, mitamae_cmd)
 end
 
 def git_submodule_reinit(path)
-  # sh "rm -rf #{path}"
   sh "git submodule update --init --recursive --force --remote #{path}"
 end
 
@@ -75,67 +83,44 @@ namespace :prepare do
   desc "set up example repos"
   task :examples do
     %w[example-ruby-infra example-ruby-git sorah-cnw].each do |name|
-      path = "misc/examples/#{name}"
-      git_submodule_reinit path
+      git_submodule_reinit "misc/examples/#{name}"
     end
   end
 
   desc "set up and compile mitamae sources"
   task :mitamae do
-    unless Dir.exist?("misc/mitamae/mruby")
-      git_submodule_reinit "misc/mitamae"
-      sh "cd misc/mitamae && rake compile && git checkout ."
-    end
+    git_submodule_reinit "misc/mitamae" unless Dir.exist?("misc/mitamae/mruby")
+    sh "cd misc/mitamae && rake compile && git checkout ."
   end
 end
 
-namespace :hocho do
-  desc "pry-inspect configuration"
-  task :debug_config do
-    config = hocho_config
-    inventory = hocho_inventory
-    binding.pry # rubocop:disable Lint/Debugger
-  end
-
+namespace :hosts do
   desc "list defined hosts"
   task :list do
-    host_list.each do |host|
-      puts host
-    end
+    host_list.each { |host| puts host }
   end
 
-  desc "show host's attributes"
+  desc "show host's merged config (usage: rake hosts:show[v1be])"
   task :show do |_t, args|
-    vars = {}
-    hocho_hosts(args.extras).each do |host|
-      vars[host.name] = host.properties.attributes
-    end
+    hostname = args.extras.first or abort "Usage: rake hosts:show[hostname]"
+    globals = DeployHelpers.load_config("./data/vars")
+    host_config = DeployHelpers.load_config("./data/hosts/#{hostname}")
+    merged = globals.merge(host_config)
+    ppp(merged)
+  end
+end
 
-    ppp vars
+namespace :deploy do
+  desc "dry-run mitamae (usage: rake deploy:dry_run[v1be])"
+  task :dry_run, [:verbose] do |_t, args|
+    hostname = args.extras.first or abort "Usage: rake deploy:dry_run[hostname]"
+    apply_host(hostname, dry_run: true, verbose: !args.verbose.nil?)
   end
 
-  desc "show host's run_list"
-  task :run_list do |_t, args|
-    vars = {}
-    hocho_hosts(args.extras).each do |host|
-      vars[host.name] = host.run_list
-    end
-
-    ppp vars
-  end
-
-  desc "run dry-run"
-  task :dry_run do |_t, args|
-    hocho_hosts(args.extras).each do |host|
-      hocho_run(host, dry_run: true)
-    end
-  end
-
-  desc "run deploy"
-  task :deploy do |_t, args|
-    hocho_hosts(args.extras).each do |host|
-      hocho_run(host)
-    end
+  desc "apply mitamae (usage: rake deploy:apply[v1be])"
+  task :apply, [:verbose] do |_t, args|
+    hostname = args.extras.first or abort "Usage: rake deploy:apply[hostname]"
+    apply_host(hostname, verbose: !args.verbose.nil?)
   end
 end
 
@@ -149,9 +134,5 @@ end
 # shortcuts
 task prepare: "prepare:deps" # rubocop:disable Rake/Desc
 task mirb: "mitamae:mirb" # rubocop:disable Rake/Desc
-task list: "hocho:list" # rubocop:disable Rake/Desc
-task show: "hocho:show" # rubocop:disable Rake/Desc
-task run_list: "hocho:run_list" # rubocop:disable Rake/Desc
-task deploy: "hocho:deploy" # rubocop:disable Rake/Desc
-task apply: "hocho:deploy" # rubocop:disable Rake/Desc
-task dry_run: "hocho:dry_run" # rubocop:disable Rake/Desc
+task list: "hosts:list" # rubocop:disable Rake/Desc
+task show: "hosts:show" # rubocop:disable Rake/Desc

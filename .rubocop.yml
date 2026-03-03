@@ -16,7 +16,6 @@ AllCops:
   - "cookbooks/**/*"
   - "plugins/**/*"
   - "lib/**/*"
-  - "bin/hocho"
   Exclude:
   - "bin/**/*"
   - "cookbooks/*/files/**/*"

@@ -23,7 +23,7 @@ only with pubkeys and only on distinguished port.
   - `data/vars/` is for yaml files that gets included for every host
   - `data/hosts/<hostname>` is host-specific directories.
   - files ending with .sops.yaml are encrypted/decrypted with `sops` before cookbook application.
-  - `lib/` has monkey-patches for hocho and mitamae
+  - `lib/` has monkey-patches for mitamae
 - orphan branches
   - `notes` - misc project documentation and whatever LLMs think they need.
   - `dist` mitamae binaries living in own branch.

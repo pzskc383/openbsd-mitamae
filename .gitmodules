@@ -23,6 +23,3 @@
 [submodule "plugins/mitamae-plugin-resource-openbsd_package"]
 	path = plugins/mitamae-plugin-resource-openbsd_package
 	url = ssh://git@pzskc383.net/~/itamae-plugin-resource-openbsd_package
-[submodule "hocho"]
-	path = misc/hocho
-	url = https://github.com/sorah/hocho.git
