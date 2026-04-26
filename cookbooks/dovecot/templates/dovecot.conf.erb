@@ -1,8 +1,3 @@
-# 2.3.21.1 (d492236fa0): /etc/dovecot/dovecot.conf
-# Pigeonhole version 0.5.21.1 (49005e73)
-# OS: OpenBSD 7.8 arm64
-# Hostname: the.main.b0x.pw
-
 listen = <%= node[:network_setup][:v4][:address] %>,<%= node[:network_setup][:v6][:address] %>
 login_greeting = IMAP ready
 mail_debug = yes

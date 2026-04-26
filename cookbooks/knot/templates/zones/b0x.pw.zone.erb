@@ -2,9 +2,9 @@ $ORIGIN b0x.pw.
 $TTL 15m
 
 ; SOA/NS
-@ IN SOA f0.pzskc383.dp.ua. root.post ( <%= @serial %> 4h 1h 2w 1h )
-@ IN NS f0.pzskc383.dp.ua.
-@ IN NS a3.pzskc383.dp.ua.
+@ IN SOA a.box.ns.pzskc383.dp.ua root.post ( <%= @serial %> 4h 1h 2w 1h )
+@ IN NS a.box.ns.pzskc383.dp.ua.
+@ IN NS b.box.ns.pzskc383.dp.ua.
 
 ; dnssec/caa settings
 @ IN NSEC3PARAM 1 0 0 -
@@ -24,24 +24,21 @@ $TTL 15m
 
 main IN A <%= node[:hosts].f0rk.v4 %>
 main IN AAAA <%= node[:hosts].f0rk.v6 %>
-main IN CNAME main
 
 far IN A <%= node[:hosts].airstrip3.v4 %>
 far IN AAAA <%= node[:hosts].airstrip3.v6 %>
-far IN CNAME far
 
 cool IN A <%= node[:hosts].v1be.v4 %>
 cool IN AAAA <%= node[:hosts].v1be.v6 %>
-cool IN CNAME cool
 
 main IN LOC 48 12 29.4 N 16 22 25.8 E 0.0m 10.0m 1000m 10m
 cool IN LOC 48 12 29.4 N 16 22 25.8 E 0.0m 10.0m 1000m 10m
 far  IN LOC 51 30 26.5 N  0  7 39.9 W 0.0m 10.0m 1000m 10m
 
 ; sshfp (manual)
-main IN SSHFP 4 2 60fc27ce45f77ebd4f25261f5e1b31b329fc8dc7f5d8b190ed84aad8f88c1f94
+main IN SSHFP 4 2 8fd5631b6f710dbcebe09cec091897cef0fc617fd66b94045b8864d1962ccebd
 far  IN SSHFP 4 2 f635ca62e1ec817a533094a92dcda52033ef6c7b2c9fcbc254779866c2b0dfe7
-cool in sshfp 4 2 b286bd1c4d4284da38cae475a7865da4d3ca9dca766b55d1e6c6f115a532a136
+cool IN sshfp 4 2 b286bd1c4d4284da38cae475a7865da4d3ca9dca766b55d1e6c6f115a532a136
 
 ; internal hosts records
 <%- node[:hosts].each do |hostname, data| -%>
@@ -55,14 +52,13 @@ x.<%= hostname.to_s %> IN AAAA <%= data.v6 %>
 <%- %w[post my.post mail my.mail i.was.abused.by.the].each do |host| -%>
 
 ; main records for <%= host %>
-<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
-<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
-<%= host %> IN MX 10 main
+<%= host %> IN A <%= node[:hosts][:v1be][:v4] %>
+<%= host %> IN AAAA <%= node[:hosts][:v1be][:v6] %>
+<%= host %> IN MX 10 cool
 <%= host %> IN MX 20 far
-<%= host %> IN MX 20 cool
 
-imap.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
-smtp.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
+imap.<%= host %> IN A <%= node[:hosts][:v1be][:v4] %>
+smtp.<%= host %> IN A <%= node[:hosts][:v1be][:v4] %>
 
 ; extra records for <%= host %>
 <%= host %> IN TXT "v=spf1 mx -all"
@@ -86,35 +82,35 @@ _imaps._tcp.<%= host %> IN SRV 0 0 0 .
 
 ; boot.my.b0x
 <%- %w[boot.my xyz.boot.my].each do |host| -%>
-<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
-<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
-ipxe.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
-ipxe.<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
-uefi.<%= host %> IN A <%= node[:hosts][:f0rk][:v4] %>
-uefi.<%= host %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+<%= host %> IN A <%= node[:hosts][:v1be][:v4] %>
+<%= host %> IN AAAA <%= node[:hosts][:v1be][:v6] %>
+ipxe.<%= host %> IN A <%= node[:hosts][:v1be][:v4] %>
+ipxe.<%= host %> IN AAAA <%= node[:hosts][:v1be][:v6] %>
+uefi.<%= host %> IN A <%= node[:hosts][:v1be][:v4] %>
+uefi.<%= host %> IN AAAA <%= node[:hosts][:v1be][:v6] %>
 <%= host %> IN MX 0 .
 <%- end -%>
 
 ; boot.*.on.my.b0x
 <%- %w[bsd alpine fedora].each do |os| -%>
-boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
-boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+boot.<%= os %>.on.my IN A <%= node[:hosts][:v1be][:v4] %>
+boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:v1be][:v6] %>
 boot.<%= os %>.on.my IN TXT "v=spf1 -all"
 boot.<%= os %>.on.my IN MX 0 .
-ipxe.boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
-ipxe.boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+ipxe.boot.<%= os %>.on.my IN A <%= node[:hosts][:v1be][:v4] %>
+ipxe.boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:v1be][:v6] %>
 ipxe.boot.<%= os %>.on.my IN TXT "v=spf1 -all"
 ipxe.boot.<%= os %>.on.my IN MX 0 .
-uefi.boot.<%= os %>.on.my IN A <%= node[:hosts][:f0rk][:v4] %>
-uefi.boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+uefi.boot.<%= os %>.on.my IN A <%= node[:hosts][:v1be][:v4] %>
+uefi.boot.<%= os %>.on.my IN AAAA <%= node[:hosts][:v1be][:v6] %>
 uefi.boot.<%= os %>.on.my IN TXT "v=spf1 -all"
 uefi.boot.<%= os %>.on.my IN MX 0 .
 <%- end -%>
 
 ; talk server and components
 <%- %w[talk chat.talk share.talk relay.talk gram.talk turn.talk].each do |domain| -%>
-<%= domain %> IN A <%= node[:hosts][:f0rk][:v4] %>
-<%= domain %> IN AAAA <%= node[:hosts][:f0rk][:v6] %>
+<%= domain %> IN A <%= node[:hosts][:v1be][:v4] %>
+<%= domain %> IN AAAA <%= node[:hosts][:v1be][:v6] %>
 <%= domain %> IN MX 0 .
 <%= domain %> IN TXT "v=spf1 -all"
 <%- end -%>
