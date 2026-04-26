@@ -13,7 +13,55 @@ module DeployHelpers
     end
   end
 
-  def self.load_config(directory)
+  def self.host_list
+    Dir.glob("data/hosts/*").map { |x| x.gsub!(%r{.*/}, '') }
+  end
+
+  def self.var_data
+    self.load_config_dir("./data/vars")
+  end
+
+  def self.host_data(hostname)
+    host_dir = "./data/hosts/#{hostname}"
+    abort "Host directory #{host_dir} not found!" unless Dir.exist? host_dir
+    self.load_config_dir(host_dir)
+  end
+
+  def self.full_host_data(hostname)
+    data_base = host_data(hostname)
+    data_vars = {
+      properties: {
+        attributes: var_data
+      }
+    }
+    data_other = {
+      properties: {
+        attributes: {
+          hosts: other_hosts_data(hostname)
+        }
+      }
+    }
+
+    with_vars = deep_merge(data_base, data_vars)
+    with_hosts = deep_merge(with_vars, data_other)
+  end
+
+  def self.other_hosts_data(current_host)
+    host_list.reject { |h| h == current_host }.map do |other_host|
+      other_attrs = host_data(other_host).dig('properties', 'attributes') || {}
+
+      [
+        other_host.to_sym,
+        {
+          dns_shortname: other_attrs[:dns_shortname],
+          v4: other_attrs.dig('network_setup', 'v4', 'address'),
+          v6: other_attrs.dig('network_setup', 'v6', 'address'),
+        }
+      ]
+    end.to_h
+  end
+
+  def self.load_config_dir(directory)
     files = Dir.glob("#{directory}/*.yml").sort_by do |fn|
       basename = File.basename(fn)
       if basename == "default.yml"

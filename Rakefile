@@ -16,12 +16,6 @@ RuboCop::RakeTask.new(:cop) do |task|
   task.options << '--display-cop-names'
 end
 
-def host_list
-  Pathname("./data/hosts").children.map do |path|
-    path.basename.to_s
-  end
-end
-
 def run_cmd(*cmd)
   log.debug "=> #{cmd.join(' ')}"
   system(*cmd) or abort "Command failed: #{cmd.first}"
@@ -47,9 +41,7 @@ def apply_host(hostname, dry_run: false, verbose: false)
     log.level = Logger::DEBUG
   end
 
-  host_config = DeployHelpers.load_config("./data/hosts/#{hostname}")
-  attrs = host_config.dig("properties", "attributes")
-  attrs.merge!(DeployHelpers.load_config("./data/vars"))
+  host_config = DeployHelpers.full_host_data(hostname)
 
   run_list = host_config.dig("properties", "run_list") || []
   abort "No run_list defined for #{hostname}" if run_list.empty?
@@ -62,13 +54,14 @@ def apply_host(hostname, dry_run: false, verbose: false)
   run_cmd(*rsync_cmd)
 
   log.info("Rendering base.yaml and default runtime.yaml")
+  host_attributes = host_config.dig('properties', 'attributes')
   base_yaml_cmd = <<~CMD
     test -d #{MITAMAE_DIR}/data || mkdir -p #{MITAMAE_DIR}/data
     test -f #{RUNTIME_YAML} || { echo '--- {}'; echo; } > #{RUNTIME_YAML}#{'    '}
     cat > #{BASE_YAML}
   CMD
   IO.popen(["ssh", ssh_target, base_yaml_cmd], "w") do |cmd|
-    cmd.write(YAML.dump(attrs))
+    cmd.write(YAML.dump(host_attributes))
   end
   abort "Failed to write base.yaml" unless $CHILD_STATUS.success?
 
@@ -110,7 +103,7 @@ end
 namespace :hosts do
   desc "list defined hosts"
   task :list do
-    host_list.each { |host| puts host }
+    DeployHelpers.host_list.each { |host| puts host }
   end
 
   desc "show host's merged config (usage: rake hosts:show[v1be])"

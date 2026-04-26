@@ -4,10 +4,9 @@ peers = {
   me: nil
 }
 
+puts YAML.dump(node.to_h)
 node[:wg_net][:peers].each do |peer_name, peer|
-  puts node[:hosts].inspect
-  puts YAML.dump(node[:hosts])
-  if peer_name == node[:hostname]
+  if peer_name.to_s == node[:hostname]
     peers[:me] = peer
   elsif node[:hosts][peer_name]
     peers[:net][peer_name] = peer.dup.merge!({
@@ -37,8 +36,8 @@ template "/etc/hostname.wg0" do
   notifies :run, "execute[netstart wg0]"
 end
 
-execute "netstart wg0" do
-  action :nothing
-  command "sh -x /etc/netstart wg0"
-  only_if { ::File.exist? "/etc/hostname.wg0" }
-end
+# execute "netstart wg0" do
+#   action :nothing
+#   command "sh -x /etc/netstart wg0"
+#   only_if { ::File.exist? "/etc/hostname.wg0" }
+# end

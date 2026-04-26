@@ -38,7 +38,7 @@ class RakeLogger < Logger
     def format_msg(msg)
       case msg
       when ::String
-        [msg.dump]
+        [msg]
       when ::Exception
         ["#{msg.message} (#{msg.class})"].then do |r|
           r << msg.backtrace.join("\n") if msg.backtrace
