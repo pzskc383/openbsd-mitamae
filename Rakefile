@@ -21,7 +21,6 @@ def log
 end
 
 def log_cmd(*cmd)
-  pp(cmd)
   log.debug "=> #{cmd.join(' ')}"
 end
 
@@ -66,13 +65,16 @@ def try_bootstrap_host(ssh_target, verbose: false)
   distpath = "./misc/dist/#{distname}"
   abort "Can't find mitamae dist #{distname} locally!" unless File.exist?(distpath)
 
-  log.info("Bootstrapping mitamae for #{target_os}/#{target_arch} on #{ssh_target}")
-  install_cmd = <<~CMD.squeeze(' ')
+  install_cmd_str = <<~CMD.squeeze(' ')
     cat > /tmp/mitamae && \
     install -g wheel -o root -m 0755 /tmp/mitamae #{MITAMAE_PATH} && \
     rm -f /tmp/mitamae
   CMD
-  run_cmd('cat', distpath, '|', 'ssh', ssh_target, install_cmd)
+
+  log.info("Bootstrapping mitamae for #{target_os}/#{target_arch} on #{ssh_target}")
+  IO.popen(["ssh", ssh_target, install_cmd_str], "w") do |cmd|
+    cmd.write(File.read(distpath))
+  end
   abort "Failure uploading mitamae binary!" unless $CHILD_STATUS.success?
 end
 
@@ -84,24 +86,38 @@ def apply_host(hostname, dry_run: false, verbose: false)
 
   ssh_target = DeployHelpers.host_ssh_target(hostname)
 
-  try_bootstrap_host(ssh_target)
+  if verbose
+    log.level = Logger::DEBUG
+  end
 
-  # clean_cmd = %w[rm -rf #{MITAMAE_DIR}/cookbooks #{MITAMAE_DIR}/plugins #{MITAMAE_DIR}/lib]
-  # log.info("Cleaning old cookbooks")
-  # run_cmd(*clean_cmd)
-  # abort "Failed to clean old files" unless $CHILD_STATUS.success?
+  try_bootstrap_host(ssh_target, verbose)
+
+  data_subdirs = %w[plugins cookbooks]
+  local_cmd = %w[tar -cf -] + data_subdirs
+  remote_cmd = "mkdir -p #{MITAMAE_DIR} && cd #{MITAMAE_DIR} && rm -rf #{data_subdirs.join(' ')} && tar -xf -"
+  upload_cmd = ["ssh", ssh_target, remote_cmd]
 
   log.info("Uploading new cookbooks")
-  upload_cmd = %w[tar -cf cookbooks lib plugins | ssh #{ssh_target} 'cd #{MITAMAE_DIR}; rm -rf cookbooks lib plugins; tar -xf -']
-  run_cmd(*upload_cmd)
-  abort "Failed to upload new files" unless $CHILD_STATUS.success?
+  if verbose
+    log_cmd(local_cmd)
+    log_cmd(upload_cmd)
+  end
+  IO.popen(upload_cmd, "w") do |ssh_stdin|
+    IO.popen(local_cmd) do |tar_stdout|
+      ssh_stdin.write(tar_stdout.read)
+    end
+  end
+  abort "Failed to upload files" unless $CHILD_STATUS.success?
+
 
   log.info("Rendering base.yaml and default runtime.yaml")
   host_attributes = host_config.dig('properties', 'attributes')
   base_yaml_cmd = <<~CMD
     test -d #{MITAMAE_DIR}/data || mkdir -p #{MITAMAE_DIR}/data
-    test -f #{RUNTIME_YAML} || { echo '--- {}'; echo; } > #{RUNTIME_YAML}#{'    '}
+    test -f #{RUNTIME_YAML} || { echo '--- {}'; echo; } > #{RUNTIME_YAML}
     cat > #{BASE_YAML}
+    chmod 400 #{BASE_YAML}
+    chmod 600 #{RUNTIME_YAML}
   CMD
 
   attr_cmd = ["ssh", ssh_target, base_yaml_cmd]
@@ -115,14 +131,13 @@ def apply_host(hostname, dry_run: false, verbose: false)
   mitamae_opts += "-n" if dry_run
   if verbose
     mitamae_opts += "--log-level debug" if verbose
-    log.level = Logger::DEBUG
   end
 
   mitamae_cmd = <<~CMD.squeeze(' ')
     cd #{MITAMAE_DIR} && \
       #{MITAMAE_PATH} local #{mitamae_opts} \
         -y data/base.yaml -y data/runtime.yaml \
-        lib/mitamae_defines.rb #{run_list.join(' ')}
+        cookbooks/defines.rb #{run_list.join(' ')}
   CMD
 
   log.info("Launching mitamae apply")
