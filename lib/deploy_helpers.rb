@@ -27,6 +27,11 @@ module DeployHelpers
     self.load_config_dir(host_dir)
   end
 
+  def self.host_ssh_target(hostname)
+    host_data = host_data(hostname)
+    host_data.dig("ssh_options", "target") || "root@#{hostname}"
+  end
+
   def self.full_host_data(hostname)
     data_base = host_data(hostname)
     data_vars = {

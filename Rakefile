@@ -16,42 +16,85 @@ RuboCop::RakeTask.new(:cop) do |task|
   task.options << '--display-cop-names'
 end
 
-def run_cmd(*cmd)
+def log
+  RakeLogger.instance
+end
+
+def log_cmd(*cmd)
+  pp(cmd)
   log.debug "=> #{cmd.join(' ')}"
-  system(*cmd) or abort "Command failed: #{cmd.first}"
+end
+
+def run_cmd(*cmd)
+  log_cmd(*cmd)
+  system(*cmd)
 end
 
 def git_submodule_reinit(path)
   sh "git submodule update --init --recursive --force --remote #{path}"
 end
 
-def log
-  RakeLogger.instance
-end
-
 MITAMAE_DIR = "/etc/mitamae".freeze
+MITAMAE_PATH = "/usr/local/sbin/mitamae"
 BASE_YAML = "#{MITAMAE_DIR}/data/base.yaml".freeze
 RUNTIME_YAML = "#{MITAMAE_DIR}/data/runtime.yaml".freeze
 
-def apply_host(hostname, dry_run: false, verbose: false)
-  mitamae_opts = ""
-  mitamae_opts += "-n" if dry_run
+def bootstrap_host(hostname, verbose: false)
+  ssh_target = DeployHelpers.host_ssh_target(hostname)
+
   if verbose
-    mitamae_opts += "--log-level debug" if verbose
     log.level = Logger::DEBUG
   end
 
+  try_bootstrap_host(ssh_target, verbose: verbose)
+end
+
+def try_bootstrap_host(ssh_target, verbose: false)
+  test_cmd = "test -x #{MITAMAE_PATH}"
+  run_cmd('ssh', ssh_target, test_cmd)
+  return if $CHILD_STATUS.success?
+
+  detect_cmd = ['ssh', ssh_target, 'uname -s; uname -m']
+  log_cmd(*detect_cmd) if verbose
+  target_os, target_arch = IO.popen(detect_cmd, 'r') do |cmd|
+    cmd.read.downcase.split("\n")
+  end
+  log.debug("OS: #{target_os}, ARCH: #{target_arch}") if verbose
+  abort "Failure detecting OS and arch!" unless $CHILD_STATUS.success?
+
+  distname = "mitamae-#{target_arch}-#{target_os}"
+  distpath = "./misc/dist/#{distname}"
+  abort "Can't find mitamae dist #{distname} locally!" unless File.exist?(distpath)
+
+  log.info("Bootstrapping mitamae for #{target_os}/#{target_arch} on #{ssh_target}")
+  install_cmd = <<~CMD.squeeze(' ')
+    cat > /tmp/mitamae && \
+    install -g wheel -o root -m 0755 /tmp/mitamae #{MITAMAE_PATH} && \
+    rm -f /tmp/mitamae
+  CMD
+  run_cmd('cat', distpath, '|', 'ssh', ssh_target, install_cmd)
+  abort "Failure uploading mitamae binary!" unless $CHILD_STATUS.success?
+end
+
+def apply_host(hostname, dry_run: false, verbose: false)
   host_config = DeployHelpers.full_host_data(hostname)
 
   run_list = host_config.dig("properties", "run_list") || []
   abort "No run_list defined for #{hostname}" if run_list.empty?
 
-  ssh_target = host_config.dig("ssh_options", "target") || "root@#{hostname}"
+  ssh_target = DeployHelpers.host_ssh_target(hostname)
 
-  rsync_cmd = %w[rsync -av --delete --exclude data cookbooks lib plugins]
-  rsync_cmd << "#{ssh_target}:#{MITAMAE_DIR}/"
-  log.info("Syncing cookbooks/plugins")
-  run_cmd(*rsync_cmd)
+  try_bootstrap_host(ssh_target)
+
+  # clean_cmd = %w[rm -rf #{MITAMAE_DIR}/cookbooks #{MITAMAE_DIR}/plugins #{MITAMAE_DIR}/lib]
+  # log.info("Cleaning old cookbooks")
+  # run_cmd(*clean_cmd)
+  # abort "Failed to clean old files" unless $CHILD_STATUS.success?
+
+  log.info("Uploading new cookbooks")
+  upload_cmd = %w[tar -cf cookbooks lib plugins | ssh #{ssh_target} 'cd #{MITAMAE_DIR}; rm -rf cookbooks lib plugins; tar -xf -']
+  run_cmd(*upload_cmd)
+  abort "Failed to upload new files" unless $CHILD_STATUS.success?
 
   log.info("Rendering base.yaml and default runtime.yaml")
   host_attributes = host_config.dig('properties', 'attributes')
@@ -60,14 +103,24 @@ def apply_host(hostname, dry_run: false, verbose: false)
     test -f #{RUNTIME_YAML} || { echo '--- {}'; echo; } > #{RUNTIME_YAML}#{'    '}
     cat > #{BASE_YAML}
   CMD
-  IO.popen(["ssh", ssh_target, base_yaml_cmd], "w") do |cmd|
+
+  attr_cmd = ["ssh", ssh_target, base_yaml_cmd]
+  log_cmd(attr_cmd) if verbose
+  IO.popen(attr_cmd, "w") do |cmd|
     cmd.write(YAML.dump(host_attributes))
   end
   abort "Failed to write base.yaml" unless $CHILD_STATUS.success?
 
+  mitamae_opts = ""
+  mitamae_opts += "-n" if dry_run
+  if verbose
+    mitamae_opts += "--log-level debug" if verbose
+    log.level = Logger::DEBUG
+  end
+
   mitamae_cmd = <<~CMD.squeeze(' ')
     cd #{MITAMAE_DIR} && \
-      mitamae local #{mitamae_opts} \
+      #{MITAMAE_PATH} local #{mitamae_opts} \
         -y data/base.yaml -y data/runtime.yaml \
         lib/mitamae_defines.rb #{run_list.join(' ')}
   CMD
@@ -75,6 +128,7 @@ def apply_host(hostname, dry_run: false, verbose: false)
   log.info("Launching mitamae apply")
   run_cmd("ssh", ssh_target, mitamae_cmd)
 end
+
 namespace :prepare do
   desc "set up working environment (cron plugin + dist binaries + project notes)"
   task :deps do
@@ -112,11 +166,15 @@ namespace :hosts do
     globals = DeployHelpers.load_config("./data/vars")
     host_config = DeployHelpers.load_config("./data/hosts/#{hostname}")
     merged = globals.merge(host_config)
-    ppp(merged)
   end
 end
 
 namespace :deploy do
+  desc "bootstrap mitamae on host (usage: rake deploy:bootstrap[v1be])"
+  task :bootstrap, [:host, :verbose] do |_t, args|
+    bootstrap_host(args.host, verbose: !args.verbose.nil?)
+  end
+
   desc "dry-run mitamae (usage: rake deploy:dry_run[v1be])"
   task :dry_run, [:host, :verbose] do |_t, args|
     apply_host(args.host, dry_run: true, verbose: !args.verbose.nil?)
@@ -137,6 +195,9 @@ end
 
 # shortcuts
 task prepare: "prepare:deps"
+task bootstrap: "deploy:bootstrap"
+task dry_run: "deploy:dry_run"
+task apply: "deploy:apply"
 task mirb: "mitamae:mirb"
 task list: "hosts:list"
 task show: "hosts:show"
