@@ -17,9 +17,10 @@
 
 [submodule "mitamae"]
 	path = misc/mitamae
-	url = https://pzskc383.net/mitamae
-	branch = local-fixes
+	url = https://github.com/pzskc383/mitamae.git
 	shallow = true
+	branch = local-fixes
+
 [submodule "plugins/mitamae-plugin-resource-openbsd_package"]
 	path = plugins/mitamae-plugin-resource-openbsd_package
-	url = ssh://git@pzskc383.net/~/itamae-plugin-resource-openbsd_package
+	url = https://github.com/pzskc383/itamae-plugin-resource-openbsd_package.git
